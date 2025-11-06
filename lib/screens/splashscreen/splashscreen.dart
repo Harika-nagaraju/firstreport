@@ -17,15 +17,15 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   void _goNext(BuildContext context) async {
     final isLanguageSelected = await LanguagePreference.isLanguageSelected();
-    
+
     if (mounted) {
       if (isLanguageSelected) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const Dashboard()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const Dashboard()));
       } else {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LanguageSelectionScreen()),
+          MaterialPageRoute(builder: (_) => const LanguageSelection()),
         );
       }
     }
@@ -48,13 +48,21 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const AppLogo(iconSize: 80, titleSize: 32, subtitleSize: 13),
+                    const AppLogo(
+                      iconSize: 80,
+                      titleSize: 32,
+                      subtitleSize: 13,
+                    ),
                     const SizedBox(height: 48),
                     GestureDetector(
                       onTap: () => _goNext(context),
                       child: Text(
-                        AppLocalizations.of(context)?.tapToContinue ?? 'Tap anywhere to continue',
-                        style: FontUtils.regular(size: 14, color: AppColors.textSecondary),
+                        AppLocalizations.of(context)?.tapToContinue ??
+                            'Tap anywhere to continue',
+                        style: FontUtils.regular(
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                   ],
@@ -67,5 +75,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-
-
