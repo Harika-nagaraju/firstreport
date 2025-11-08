@@ -114,17 +114,30 @@ class _PostNewsState extends State<PostNews> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = theme.scaffoldBackgroundColor;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.white;
+    final primaryText =
+        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final secondaryText =
+        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final inputBackground =
+        isDark ? AppColors.darkInputBackground : AppColors.inputBackground;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.borderUnselected;
+
     return Scaffold(
-      backgroundColor: AppColors.screenBackground,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: cardColor,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
           'Post News',
-          style: FontUtils.bold(size: 18),
+          style: FontUtils.bold(size: 18, color: primaryText),
         ),
         centerTitle: true,
+        iconTheme: IconThemeData(color: primaryText),
       ),
       body: SafeArea(
         child: _isLoading
@@ -139,14 +152,14 @@ class _PostNewsState extends State<PostNews> {
                         Icon(
                           Icons.error_outline,
                           size: 64,
-                          color: AppColors.textLightGrey,
+                          color: secondaryText,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Please register first',
                           style: FontUtils.bold(
                             size: 18,
-                            color: AppColors.textDarkGrey,
+                            color: primaryText,
                           ),
                         ),
                       ],
@@ -158,128 +171,128 @@ class _PostNewsState extends State<PostNews> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // News Details Section
-              Text(
-                'News Details',
-                style: FontUtils.bold(
-                  size: 20,
-                  color: AppColors.textDarkGrey,
-                ),
-              ),
+                        Text(
+                          'News Details',
+                          style: FontUtils.bold(
+                            size: 20,
+                            color: primaryText,
+                          ),
+                        ),
               const SizedBox(height: 24),
               // Title Section
-              Text(
-                'Title',
-                style: FontUtils.bold(
-                  size: 16,
-                  color: AppColors.textDarkGrey,
-                ),
-              ),
+                        Text(
+                          'Title',
+                          style: FontUtils.bold(
+                            size: 16,
+                            color: primaryText,
+                          ),
+                        ),
               const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.inputBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.borderUnselected,
-                    width: 1,
-                  ),
-                ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: inputBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1,
+                            ),
+                          ),
                 child: TextField(
                   controller: _titleController,
                   decoration: InputDecoration(
                     hintText: 'Enter news title...',
-                    hintStyle: FontUtils.regular(
-                      size: 14,
-                      color: AppColors.textLightGrey,
-                    ),
+                            hintStyle: FontUtils.regular(
+                              size: 14,
+                              color: secondaryText,
+                            ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
                   ),
-                  style: FontUtils.regular(
-                    size: 14,
-                    color: AppColors.textDarkGrey,
-                  ),
+                          style: FontUtils.regular(
+                            size: 14,
+                            color: primaryText,
+                          ),
                   maxLines: 1,
                 ),
               ),
               const SizedBox(height: 24),
-              // Description Section
-              Text(
-                'Description',
-                style: FontUtils.bold(
-                  size: 16,
-                  color: AppColors.textDarkGrey,
-                ),
-              ),
+                        // Description Section
+                        Text(
+                          'Description',
+                          style: FontUtils.bold(
+                            size: 16,
+                            color: primaryText,
+                          ),
+                        ),
               const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.inputBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.borderUnselected,
-                    width: 1,
-                  ),
-                ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: inputBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1,
+                            ),
+                          ),
                 child: TextField(
                   controller: _descriptionController,
                   decoration: InputDecoration(
                     hintText: 'Write your news story...',
-                    hintStyle: FontUtils.regular(
-                      size: 14,
-                      color: AppColors.textLightGrey,
-                    ),
+                            hintStyle: FontUtils.regular(
+                              size: 14,
+                              color: secondaryText,
+                            ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.all(16),
                   ),
-                  style: FontUtils.regular(
-                    size: 14,
-                    color: AppColors.textDarkGrey,
-                  ),
+                          style: FontUtils.regular(
+                            size: 14,
+                            color: primaryText,
+                          ),
                   maxLines: 6,
                 ),
               ),
               const SizedBox(height: 24),
-              // URL Section (Optional)
-              Text(
-                'URL (Optional)',
-                style: FontUtils.bold(
-                  size: 16,
-                  color: AppColors.textDarkGrey,
-                ),
-              ),
+                        // URL Section (Optional)
+                        Text(
+                          'URL (Optional)',
+                          style: FontUtils.bold(
+                            size: 16,
+                            color: primaryText,
+                          ),
+                        ),
               const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.inputBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.borderUnselected,
-                    width: 1,
-                  ),
-                ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: inputBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1,
+                            ),
+                          ),
                 child: TextField(
                   controller: _urlController,
                   keyboardType: TextInputType.url,
                   decoration: InputDecoration(
                     hintText: 'Enter news URL (optional)...',
-                    hintStyle: FontUtils.regular(
-                      size: 14,
-                      color: AppColors.textLightGrey,
-                    ),
+                            hintStyle: FontUtils.regular(
+                              size: 14,
+                              color: secondaryText,
+                            ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
                   ),
-                  style: FontUtils.regular(
-                    size: 14,
-                    color: AppColors.textDarkGrey,
-                  ),
+                          style: FontUtils.regular(
+                            size: 14,
+                            color: primaryText,
+                          ),
                   maxLines: 1,
                 ),
               ),
@@ -289,7 +302,7 @@ class _PostNewsState extends State<PostNews> {
                 'Upload Media',
                 style: FontUtils.bold(
                   size: 16,
-                  color: AppColors.textDarkGrey,
+                  color: primaryText,
                 ),
               ),
               const SizedBox(height: 8),
@@ -305,7 +318,9 @@ class _PostNewsState extends State<PostNews> {
                     height: 200,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppColors.uploadAreaBackground,
+                    color: isDark
+                        ? AppColors.darkSurface
+                        : AppColors.uploadAreaBackground,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: _selectedMedia != null
@@ -379,7 +394,9 @@ class _PostNewsState extends State<PostNews> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.verificationBanner,
+                  color: isDark
+                      ? AppColors.darkSurface
+                      : AppColors.verificationBanner,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -425,7 +442,7 @@ class _PostNewsState extends State<PostNews> {
                         size: 16,
                         color: _isFormValid
                             ? AppColors.white
-                            : AppColors.textLightGrey,
+                            : secondaryText,
                       ),
                     ),
                   ),

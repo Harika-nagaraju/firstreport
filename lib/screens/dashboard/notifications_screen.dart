@@ -10,360 +10,205 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  bool _pushNotifications = true;
-  bool _breakingNews = true;
-  bool _trendingNews = false;
-  bool _quizReminders = true;
-  bool _postUpdates = true;
-  TimeOfDay? _quietHoursFrom;
-  TimeOfDay? _quietHoursTo;
+  final List<Map<String, dynamic>> _notifications = [
+    {
+      'id': 'notif-1',
+      'title': 'Morning briefing ready',
+      'summary': 'Catch up on the headlines tailored to your interests.',
+      'time': 'Just now',
+      'isRead': false,
+      'article': {
+        'title': 'Morning Brief: Top Stories for Today',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=960',
+        'content':
+            'Stay ahead with the biggest developments this morning. From policy changes to market swings, we have curated the top five stories you need to know before you start your day. Tap any headline inside the brief to read the full coverage.',
+      },
+    },
+    {
+      'id': 'notif-2',
+      'title': 'Quiz challenge live',
+      'summary': 'Test your knowledge in today\'s current affairs quiz.',
+      'time': '20 min ago',
+      'isRead': false,
+      'article': {
+        'title': 'Today\'s Current Affairs Quiz',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=960',
+        'content':
+            'Five quick questions on global headlines, economics, and science. Earn streak points and compare scores with your friends. Ready to take the challenge?',
+      },
+    },
+    {
+      'id': 'notif-3',
+      'title': 'Saved story updated',
+      'summary': 'A story you saved has a new follow-up article.',
+      'time': '1 hr ago',
+      'isRead': false,
+      'article': {
+        'title': 'Infrastructure Overhaul: What\'s New',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1501696461415-6bd6660c6741?w=960',
+        'content':
+            'The metro expansion project you bookmarked now has updated timelines and budget allocations. Explore the latest milestones and how commuters will benefit.',
+      },
+    },
+    {
+      'id': 'notif-4',
+      'title': 'Welcome to First Report',
+      'summary': 'Let’s personalise your feed by picking favourite categories.',
+      'time': 'Yesterday',
+      'isRead': true,
+      'article': {
+        'title': 'Personalise Your News Feed',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1517638851339-4aa32003c11a?w=960',
+        'content':
+            'Follow topics such as Economy, Space, Education, and Culture to get a curated stream of updates. You can change your preferences anytime from Settings.',
+      },
+    },
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-    // Set default quiet hours
-    _quietHoursFrom = const TimeOfDay(hour: 22, minute: 0); // 10:00 PM
-    _quietHoursTo = const TimeOfDay(hour: 7, minute: 0); // 7:00 AM
+  void _markAllRead() {
+    setState(() {
+      for (final notification in _notifications) {
+        notification['isRead'] = true;
+      }
+    });
   }
 
-  Future<void> _selectTime(BuildContext context, bool isFrom) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isFrom ? (_quietHoursFrom ?? const TimeOfDay(hour: 22, minute: 0)) 
-                          : (_quietHoursTo ?? const TimeOfDay(hour: 7, minute: 0)),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isFrom) {
-          _quietHoursFrom = picked;
-        } else {
-          _quietHoursTo = picked;
-        }
-      });
-    }
+  void _removeNotification(int index) {
+    if (index < 0 || index >= _notifications.length) return;
+    setState(() {
+      _notifications.removeAt(index);
+    });
   }
 
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour > 12 ? time.hour - 12 : time.hour == 0 ? 12 : time.hour;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final period = time.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $period';
-  }
+  Future<void> _openNotification(int index) async {
+    final notification = _notifications[index];
+    setState(() {
+      notification['isRead'] = true;
+    });
 
-  Widget _buildNotificationCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final article = notification['article'] as Map<String, dynamic>?;
+    if (article == null) return;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: AppColors.buttonGradient,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: AppColors.white,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: FontUtils.bold(
-                      size: 16,
-                      color: textPrimary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: FontUtils.regular(
-                      size: 12,
-                      color: textSecondary,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeColor: AppColors.gradientStart,
-            ),
-          ],
-        ),
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NotificationDetailScreen(article: article),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = theme.scaffoldBackgroundColor;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: cardColor,
         elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.of(context).pop(),
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.backgroundLightGrey,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.arrow_back,
-              color: textPrimary,
-              size: 20,
-            ),
-          ),
-        ),
+        iconTheme: IconThemeData(color: textPrimary),
         title: Text(
           'Notifications',
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
-        centerTitle: true,
+        actions: [
+          if (_notifications.isNotEmpty)
+            TextButton(
+              onPressed: _markAllRead,
+              child: Text(
+                'Mark all read',
+                style: FontUtils.bold(size: 14, color: AppColors.gradientStart),
+              ),
+            ),
+        ],
       ),
-      body: SingleChildScrollView(
+      body: _notifications.isEmpty
+          ? _buildEmptyState(textPrimary, textSecondary, cardColor)
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: _notifications.length,
+              itemBuilder: (context, index) {
+                final notification = _notifications[index];
+                final isUnread = !(notification['isRead'] as bool);
+
+                return Dismissible(
+                  key: ValueKey(notification['id'] as String),
+                  direction: DismissDirection.horizontal,
+                  background: _buildSwipeBackground(Alignment.centerLeft),
+                  secondaryBackground:
+                      _buildSwipeBackground(Alignment.centerRight),
+                  onDismissed: (_) => _removeNotification(index),
+                  child: _NotificationTile(
+                    title: notification['title'] as String,
+                    summary: notification['summary'] as String,
+                    time: notification['time'] as String,
+                    isUnread: isUnread,
+                    cardColor: cardColor,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    onTap: () => _openNotification(index),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _buildSwipeBackground(Alignment alignment) {
+    return Container(
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withOpacity(0.85),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Icon(Icons.delete, color: Colors.white, size: 24),
+    );
+  }
+
+  Widget _buildEmptyState(
+    Color textPrimary,
+    Color textSecondary,
+    Color cardColor,
+  ) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Stay Updated Banner
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: AppColors.buttonGradient,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
-                      color: Colors.white24,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.notifications,
-                      color: AppColors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Stay Updated',
-                          style: FontUtils.bold(
-                            size: 18,
-                            color: AppColors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Customize your notification preferences to stay informed about the news that matters to you.',
-                          style: FontUtils.regular(
-                            size: 12,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            Icon(
+              Icons.notifications_off_outlined,
+              color: AppColors.gradientStart,
+              size: 36,
             ),
-            // Notification Settings
-            _buildNotificationCard(
-              icon: Icons.notifications_outlined,
-              title: 'Push Notifications',
-              subtitle: 'Receive push notifications',
-              value: _pushNotifications,
-              onChanged: (value) => setState(() => _pushNotifications = value),
+            const SizedBox(height: 16),
+            Text(
+              'Nothing new right now',
+              style: FontUtils.bold(size: 18, color: textPrimary),
+              textAlign: TextAlign.center,
             ),
-            _buildNotificationCard(
-              icon: Icons.newspaper,
-              title: 'Breaking News Alerts',
-              subtitle: 'Get notified of breaking news',
-              value: _breakingNews,
-              onChanged: (value) => setState(() => _breakingNews = value),
+            const SizedBox(height: 8),
+            Text(
+              'When breaking stories arrive, you\'ll see them here instantly.',
+              style: FontUtils.regular(size: 14, color: textSecondary),
+              textAlign: TextAlign.center,
             ),
-            _buildNotificationCard(
-              icon: Icons.trending_up,
-              title: 'Trending News',
-              subtitle: 'Daily trending news digest',
-              value: _trendingNews,
-              onChanged: (value) => setState(() => _trendingNews = value),
-            ),
-            _buildNotificationCard(
-              icon: Icons.quiz,
-              title: 'Quiz Reminders',
-              subtitle: 'Daily quiz challenges',
-              value: _quizReminders,
-              onChanged: (value) => setState(() => _quizReminders = value),
-            ),
-            _buildNotificationCard(
-              icon: Icons.article,
-              title: 'Post Updates',
-              subtitle: 'Updates on your posted news',
-              value: _postUpdates,
-              onChanged: (value) => setState(() => _postUpdates = value),
-            ),
-            // Quiet Hours Section
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Quiet Hours',
-                    style: FontUtils.bold(
-                      size: 16,
-                      color: textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Mute notifications during these hours',
-                    style: FontUtils.regular(
-                      size: 12,
-                      color: textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _selectTime(context, true),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkInputBackground : AppColors.inputBackground,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'From',
-                                  style: FontUtils.regular(
-                                    size: 12,
-                                    color: textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _quietHoursFrom != null
-                                      ? _formatTime(_quietHoursFrom!)
-                                      : '10:00 PM',
-                                  style: FontUtils.regular(
-                                    size: 14,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => _selectTime(context, false),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkInputBackground : AppColors.inputBackground,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'To',
-                                  style: FontUtils.regular(
-                                    size: 12,
-                                    color: textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _quietHoursTo != null
-                                      ? _formatTime(_quietHoursTo!)
-                                      : '7:00 AM',
-                                  style: FontUtils.regular(
-                                    size: 14,
-                                    color: textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -371,3 +216,165 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 }
 
+class _NotificationTile extends StatelessWidget {
+  final String title;
+  final String summary;
+  final String time;
+  final bool isUnread;
+  final Color cardColor;
+  final Color textPrimary;
+  final Color textSecondary;
+  final VoidCallback onTap;
+
+  const _NotificationTile({
+    required this.title,
+    required this.summary,
+    required this.time,
+    required this.isUnread,
+    required this.cardColor,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isUnread)
+                      Container(
+                        width: 10,
+                        height: 10,
+                        margin: const EdgeInsets.only(right: 8, top: 4),
+                        decoration: const BoxDecoration(
+                          color: AppColors.gradientStart,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: FontUtils.bold(size: 15, color: textPrimary),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            summary,
+                            style: FontUtils.regular(
+                              size: 13,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      time,
+                      style: FontUtils.regular(size: 12, color: textSecondary),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class NotificationDetailScreen extends StatelessWidget {
+  final Map<String, dynamic> article;
+
+  const NotificationDetailScreen({super.key, required this.article});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = theme.scaffoldBackgroundColor;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        title: Text(
+          article['title'] as String? ?? 'Notification',
+          style: FontUtils.bold(size: 18, color: textPrimary),
+        ),
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.white,
+        iconTheme: IconThemeData(color: textPrimary),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (article['imageUrl'] != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  article['imageUrl'] as String,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 200,
+                    width: double.infinity,
+                    color: AppColors.backgroundLightGrey,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      color: AppColors.textLightGrey,
+                      size: 48,
+                    ),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            Text(
+              article['title'] as String,
+              style: FontUtils.bold(size: 24, color: textPrimary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              article['content'] as String,
+              style: FontUtils.regular(size: 16, color: textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

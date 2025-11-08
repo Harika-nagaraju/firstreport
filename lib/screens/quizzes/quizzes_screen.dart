@@ -3,6 +3,7 @@ import 'package:newsapp/utils/appcolors.dart';
 import 'package:newsapp/utils/fontutils.dart';
 import 'package:newsapp/widgets/quiz_card.dart';
 import 'package:newsapp/widgets/category_chip.dart';
+import 'package:newsapp/screens/quizzes/quiz_play_screen.dart';
 
 class QuizzesScreen extends StatefulWidget {
   const QuizzesScreen({super.key});
@@ -23,48 +24,158 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
     'General Knowledge',
   ];
 
-  // Sample quiz data - this would be filtered by category
+  // Sample quiz data - includes questions for each quiz
   List<Map<String, dynamic>> getQuizzes() {
     return [
       {
-        'imageUrl': 'https://via.placeholder.com/400x200?text=Indian+History',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1545239351-1141bd82e8a6?w=900',
         'title': 'Indian History Quiz',
         'difficulty': 'Medium',
-        'questionCount': 5,
-        'description': 'Test your knowledge about Indian history',
+        'description': 'Test your knowledge about India\'s remarkable past.',
         'category': 'History',
+        'questions': [
+          {
+            'question': 'Who is known as the Father of the Indian Constitution?',
+            'options': [
+              'Dr. B.R. Ambedkar',
+              'Mahatma Gandhi',
+              'Jawaharlal Nehru',
+              'Sardar Patel',
+            ],
+            'answerIndex': 0,
+          },
+          {
+            'question': 'The Battle of Plassey was fought in which year?',
+            'options': ['1757', '1764', '1857', '1818'],
+            'answerIndex': 0,
+          },
+          {
+            'question': 'Which empire built the city of Fatehpur Sikri?',
+            'options': [
+              'Maratha Empire',
+              'Gupta Empire',
+              'Mughal Empire',
+              'Maurya Empire',
+            ],
+            'answerIndex': 2,
+          },
+        ],
       },
       {
-        'imageUrl': 'https://via.placeholder.com/400x200?text=Sports',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=900',
         'title': 'Sports Trivia',
         'difficulty': 'Easy',
-        'questionCount': 5,
-        'description': 'How well do you know your sports?',
+        'description': 'How well do you know the world of sports?',
         'category': 'Sports',
+        'questions': [
+          {
+            'question': 'How many players are there in a cricket team?',
+            'options': ['9', '10', '11', '12'],
+            'answerIndex': 2,
+          },
+          {
+            'question': 'Which country hosts the Wimbledon Championships?',
+            'options': ['USA', 'Australia', 'France', 'United Kingdom'],
+            'answerIndex': 3,
+          },
+          {
+            'question': 'Lionel Messi is associated with which sport?',
+            'options': ['Basketball', 'Football', 'Tennis', 'Hockey'],
+            'answerIndex': 1,
+          },
+        ],
       },
       {
-        'imageUrl': 'https://via.placeholder.com/400x200?text=Current+Affairs',
-        'title': 'Current Affairs',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=900',
+        'title': 'Current Affairs Pulse',
         'difficulty': 'Hard',
-        'questionCount': 5,
-        'description': 'Stay updated with current events and news',
+        'description': 'Stay updated with the latest national and global news.',
         'category': 'Current Affairs',
+        'questions': [
+          {
+            'question': 'Which organisation recently launched the Chandrayaan mission?',
+            'options': ['NASA', 'ISRO', 'SpaceX', 'Roscosmos'],
+            'answerIndex': 1,
+          },
+          {
+            'question': 'The COP27 climate summit was hosted in which country?',
+            'options': ['India', 'Egypt', 'Germany', 'Brazil'],
+            'answerIndex': 1,
+          },
+          {
+            'question': 'Who is the current Chief Justice of India?',
+            'options': [
+              'N. V. Ramana',
+              'Uday U. Lalit',
+              'D. Y. Chandrachud',
+              'Sharad Bobde',
+            ],
+            'answerIndex': 2,
+          },
+        ],
       },
       {
-        'imageUrl': 'https://via.placeholder.com/400x200?text=Science',
-        'title': 'Science Quiz',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1517697471339-4aa32003c11a?w=900',
+        'title': 'Science Explorer',
         'difficulty': 'Medium',
-        'questionCount': 5,
-        'description': 'Explore the world of science and technology',
+        'description': 'Explore the fascinating world of science and technology.',
         'category': 'Science',
+        'questions': [
+          {
+            'question': 'What is the chemical symbol for gold?',
+            'options': ['Au', 'Ag', 'Pt', 'Fe'],
+            'answerIndex': 0,
+          },
+          {
+            'question': 'What planet is known as the Red Planet?',
+            'options': ['Venus', 'Mars', 'Jupiter', 'Mercury'],
+            'answerIndex': 1,
+          },
+          {
+            'question': 'Which gas do plants absorb during photosynthesis?',
+            'options': ['Oxygen', 'Nitrogen', 'Carbon Dioxide', 'Helium'],
+            'answerIndex': 2,
+          },
+        ],
       },
       {
-        'imageUrl': 'https://via.placeholder.com/400x200?text=General+Knowledge',
+        'imageUrl':
+            'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=900',
         'title': 'General Knowledge Challenge',
         'difficulty': 'Hard',
-        'questionCount': 5,
-        'description': 'Test your general knowledge across various topics',
+        'description': 'Test your general knowledge across various topics.',
         'category': 'General Knowledge',
+        'questions': [
+          {
+            'question': 'Which is the largest ocean on Earth?',
+            'options': [
+              'Atlantic Ocean',
+              'Indian Ocean',
+              'Pacific Ocean',
+              'Arctic Ocean',
+            ],
+            'answerIndex': 2,
+          },
+          {
+            'question': 'Which country is known as the Land of the Rising Sun?',
+            'options': ['China', 'Japan', 'Thailand', 'South Korea'],
+            'answerIndex': 1,
+          },
+          {
+            'question': 'Who wrote the play "Romeo and Juliet"?',
+            'options': [
+              'Charles Dickens',
+              'William Shakespeare',
+              'Mark Twain',
+              'George Bernard Shaw',
+            ],
+            'answerIndex': 1,
+          },
+        ],
       },
     ];
   }
@@ -81,9 +192,14 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
   @override
   Widget build(BuildContext context) {
     final quizzes = getFilteredQuizzes();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final surfaceColor = isDark ? AppColors.darkCard : AppColors.white;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final dividerShadow = Colors.black.withOpacity(isDark ? 0.25 : 0.05);
 
     return Scaffold(
-      backgroundColor: AppColors.screenBackground,
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -91,10 +207,10 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
-                color: AppColors.white,
+                color: surfaceColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: dividerShadow,
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -105,9 +221,9 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                   // Back Button
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_back,
-                      color: AppColors.textDarkGrey,
+                      color: textPrimary,
                       size: 24,
                     ),
                   ),
@@ -117,7 +233,7 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                     'Quizzes',
                     style: FontUtils.bold(
                       size: 24,
-                      color: AppColors.textDarkGrey,
+                      color: textPrimary,
                     ),
                   ),
                 ],
@@ -127,10 +243,10 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.white,
+                color: surfaceColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: dividerShadow,
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -164,18 +280,28 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                 itemCount: quizzes.length,
                 itemBuilder: (context, index) {
                   final quiz = quizzes[index];
+                  final List<dynamic> questions = quiz['questions'] as List<dynamic>;
                   return QuizCard(
                     imageUrl: quiz['imageUrl'],
                     title: quiz['title'],
                     difficulty: quiz['difficulty'],
-                    questionCount: quiz['questionCount'],
+                    questionCount: questions.length,
                     description: quiz['description'],
                     onStartQuiz: () {
-                      // Handle start quiz action
-                      // Navigate to quiz detail or start quiz screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Starting ${quiz['title']}...'),
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => QuizPlayScreen(
+                            title: quiz['title'] as String,
+                            questions: questions
+                                .map(
+                                  (item) => QuizQuestion(
+                                    question: item['question'] as String,
+                                    options: List<String>.from(item['options'] as List),
+                                    answerIndex: item['answerIndex'] as int,
+                                  ),
+                                )
+                                .toList(),
+                          ),
                         ),
                       );
                     },

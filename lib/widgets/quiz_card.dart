@@ -35,14 +35,17 @@ class QuizCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.white;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -154,7 +157,7 @@ class QuizCard extends StatelessWidget {
                   description,
                   style: FontUtils.regular(
                     size: 14,
-                    color: AppColors.textLightGrey,
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 16),

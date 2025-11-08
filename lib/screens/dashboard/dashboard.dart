@@ -26,18 +26,27 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scaffoldColor = theme.scaffoldBackgroundColor;
+    final navColor = isDark ? AppColors.darkCard : AppColors.white;
+    final navShadow = Colors.black.withOpacity(isDark ? 0.35 : 0.05);
+    final inactiveColor =
+        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final activeColor = AppColors.gradientStart;
+
     return Scaffold(
-      backgroundColor: AppColors.screenBackground,
+      backgroundColor: scaffoldColor,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: navColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: navShadow,
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -53,16 +62,22 @@ class _DashboardState extends State<Dashboard> {
                   icon: Icons.home,
                   label: 'Home',
                   index: 0,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
                 ),
                 _buildNavItem(
                   icon: Icons.add_circle_outline,
                   label: 'Post',
                   index: 1,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
                 ),
                 _buildNavItem(
                   icon: Icons.settings,
                   label: 'Settings',
                   index: 2,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
                 ),
               ],
             ),
@@ -138,6 +153,8 @@ class _DashboardState extends State<Dashboard> {
     required IconData icon,
     required String label,
     required int index,
+    required Color activeColor,
+    required Color inactiveColor,
   }) {
     final isActive = _currentIndex == index;
     return GestureDetector(
@@ -156,7 +173,7 @@ class _DashboardState extends State<Dashboard> {
         children: [
           Icon(
             icon,
-            color: isActive ? AppColors.gradientStart : AppColors.textLightGrey,
+            color: isActive ? activeColor : inactiveColor,
             size: 24,
           ),
           const SizedBox(height: 4),
@@ -164,7 +181,7 @@ class _DashboardState extends State<Dashboard> {
             label,
             style: FontUtils.regular(
               size: 12,
-              color: isActive ? AppColors.gradientStart : AppColors.textLightGrey,
+              color: isActive ? activeColor : inactiveColor,
             ),
           ),
         ],

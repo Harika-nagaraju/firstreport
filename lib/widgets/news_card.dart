@@ -14,6 +14,7 @@ class NewsCard extends StatefulWidget {
   final String timeAgo;
   final VoidCallback? onReadMore;
   final VoidCallback? onSave;
+  final ValueChanged<bool>? onSaveToggle;
 
   const NewsCard({
     super.key,
@@ -25,6 +26,7 @@ class NewsCard extends StatefulWidget {
     required this.timeAgo,
     this.onReadMore,
     this.onSave,
+    this.onSaveToggle,
   });
 
   @override
@@ -107,14 +109,22 @@ class _NewsCardState extends State<NewsCard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.white;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final chipBackground =
+        isDark ? AppColors.darkInputBackground : AppColors.backgroundLightGrey;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(isDark ? 0.4 : 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -129,17 +139,17 @@ class _NewsCardState extends State<NewsCard> {
             child: Container(
               height: 200,
               width: double.infinity,
-              color: AppColors.backgroundLightGrey,
+              color: chipBackground,
               child: Image.network(
                 widget.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    color: AppColors.backgroundLightGrey,
-                    child: const Icon(
+                    color: chipBackground,
+                    child: Icon(
                       Icons.image_not_supported,
                       size: 48,
-                      color: AppColors.textLightGrey,
+                      color: textSecondary,
                     ),
                   );
                 },
@@ -161,7 +171,7 @@ class _NewsCardState extends State<NewsCard> {
                         widget.title,
                         style: FontUtils.bold(
                           size: 18,
-                          color: AppColors.textDarkGrey,
+                          color: textPrimary,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -176,7 +186,7 @@ class _NewsCardState extends State<NewsCard> {
                         size: 24,
                         color: isMicEnabled
                             ? AppColors.gradientStart
-                            : AppColors.textLightGrey,
+                          : textSecondary,
                       ),
                     ),
                   ],
@@ -192,7 +202,7 @@ class _NewsCardState extends State<NewsCard> {
                     widget.description,
                     style: FontUtils.regular(
                       size: 14,
-                      color: AppColors.textLightGrey,
+                      color: textSecondary,
                     ),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
@@ -201,7 +211,7 @@ class _NewsCardState extends State<NewsCard> {
                     widget.fullContent,
                     style: FontUtils.regular(
                       size: 14,
-                      color: AppColors.textLightGrey,
+                      color: textSecondary,
                     ),
                   ),
                 ),
@@ -213,7 +223,7 @@ class _NewsCardState extends State<NewsCard> {
                       '${widget.author} • ${widget.timeAgo}',
                       style: FontUtils.regular(
                         size: 12,
-                        color: AppColors.textLightGrey,
+                        color: textSecondary,
                       ),
                     ),
                   ],
@@ -235,13 +245,13 @@ class _NewsCardState extends State<NewsCard> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundLightGrey,
+                          color: chipBackground,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Icon(
                           isLiked ? Icons.favorite : Icons.favorite_border,
                           size: 20,
-                          color: isLiked ? Colors.red : AppColors.textLightGrey,
+                          color: isLiked ? Colors.red : textSecondary,
                         ),
                       ),
                     ),
@@ -254,23 +264,23 @@ class _NewsCardState extends State<NewsCard> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundLightGrey,
+                          color: chipBackground,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.share,
                               size: 18,
-                              color: AppColors.textLightGrey,
+                              color: textSecondary,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Share',
                               style: FontUtils.regular(
                                 size: 12,
-                                color: AppColors.textLightGrey,
+                                color: textSecondary,
                               ),
                             ),
                           ],
@@ -280,8 +290,10 @@ class _NewsCardState extends State<NewsCard> {
                     // Save Button
                     GestureDetector(
                       onTap: () async {
+                        bool newSavedState;
                         if (isSaved) {
                           await SavedNews.removeNews(widget.title);
+                          newSavedState = false;
                         } else {
                           await SavedNews.saveNews({
                             'imageUrl': widget.imageUrl,
@@ -294,10 +306,12 @@ class _NewsCardState extends State<NewsCard> {
                           if (widget.onSave != null) {
                             widget.onSave!();
                           }
+                          newSavedState = true;
                         }
                         setState(() {
-                          isSaved = !isSaved;
+                          isSaved = newSavedState;
                         });
+                        widget.onSaveToggle?.call(newSavedState);
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -306,8 +320,8 @@ class _NewsCardState extends State<NewsCard> {
                         ),
                         decoration: BoxDecoration(
                           color: isSaved
-                              ? AppColors.gradientStart.withOpacity(0.1)
-                              : AppColors.backgroundLightGrey,
+                              ? AppColors.gradientStart.withOpacity(0.12)
+                              : chipBackground,
                           borderRadius: BorderRadius.circular(20),
                           border: isSaved
                               ? Border.all(
@@ -324,7 +338,7 @@ class _NewsCardState extends State<NewsCard> {
                               size: 18,
                               color: isSaved
                                   ? AppColors.gradientStart
-                                  : AppColors.textLightGrey,
+                                  : textSecondary,
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -333,7 +347,7 @@ class _NewsCardState extends State<NewsCard> {
                                 size: 12,
                                 color: isSaved
                                     ? AppColors.gradientStart
-                                    : AppColors.textLightGrey,
+                                    : textSecondary,
                               ),
                             ),
                           ],
@@ -356,14 +370,14 @@ class _NewsCardState extends State<NewsCard> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.backgroundLightGrey,
+                          color: chipBackground,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           isExpanded ? 'Read Less' : 'Read More',
                           style: FontUtils.regular(
                             size: 12,
-                            color: AppColors.textDarkGrey,
+                            color: textPrimary,
                           ),
                         ),
                       ),
