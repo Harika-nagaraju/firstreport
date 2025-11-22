@@ -1,13 +1,17 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:newsapp/utils/appcolors.dart';
 import 'package:newsapp/utils/fontutils.dart';
 import 'package:newsapp/utils/user_registration.dart';
+import 'package:newsapp/utils/post_storage.dart';
 import 'package:newsapp/widgets/dashed_border.dart';
 
 class PostNews extends StatefulWidget {
-  const PostNews({super.key});
+  final VoidCallback? onSubmitted;
+  final PostItem? initialPost;
+
+  const PostNews({super.key, this.onSubmitted, this.initialPost});
 
   @override
   State<PostNews> createState() => _PostNewsState();
@@ -17,10 +21,12 @@ class _PostNewsState extends State<PostNews> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
-  File? _selectedMedia;
+  XFile? _selectedMedia;
+  Uint8List? _selectedMediaBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isRegistered = false;
   bool _isLoading = true;
+  String? _editingPostId;
 
   @override
   void initState() {
@@ -28,6 +34,15 @@ class _PostNewsState extends State<PostNews> {
     _checkRegistrationStatus();
     _titleController.addListener(_checkFormValidity);
     _descriptionController.addListener(_checkFormValidity);
+
+    // If editing an existing post, pre-fill fields
+    final initial = widget.initialPost;
+    if (initial != null) {
+      _editingPostId = initial.id;
+      _titleController.text = initial.title;
+      _descriptionController.text = initial.description;
+      _urlController.text = initial.url ?? '';
+    }
   }
 
   @override
@@ -69,8 +84,10 @@ class _PostNewsState extends State<PostNews> {
         source: ImageSource.gallery,
       );
       if (image != null) {
+        final bytes = await image.readAsBytes();
         setState(() {
-          _selectedMedia = File(image.path);
+          _selectedMedia = image;
+          _selectedMediaBytes = bytes;
         });
       }
     } catch (e) {
@@ -95,7 +112,27 @@ class _PostNewsState extends State<PostNews> {
     // Get user details from registration
     final userDetails = await UserRegistration.getUserDetails();
     final name = userDetails['name'] ?? 'User';
-    
+
+    // Create or update post locally
+    final now = DateTime.now();
+    final existing = widget.initialPost;
+    final post = PostItem(
+      id: _editingPostId ?? now.millisecondsSinceEpoch.toString(),
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      url: _urlController.text.trim().isEmpty
+          ? null
+          : _urlController.text.trim(),
+      imagePath: existing?.imagePath,
+      createdAt: existing?.createdAt ?? now,
+    );
+
+    if (_editingPostId == null) {
+      await PostStorage.addPost(post);
+    } else {
+      await PostStorage.updatePost(post);
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('News submitted successfully by $name!'),
@@ -109,7 +146,13 @@ class _PostNewsState extends State<PostNews> {
     _urlController.clear();
     setState(() {
       _selectedMedia = null;
+      _selectedMediaBytes = null;
     });
+
+    // Notify parent (Dashboard) so it can navigate to Home tab
+    if (widget.onSubmitted != null) {
+      widget.onSubmitted!();
+    }
   }
 
   @override
@@ -323,13 +366,13 @@ class _PostNewsState extends State<PostNews> {
                         : AppColors.uploadAreaBackground,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: _selectedMedia != null
+                    child: _selectedMedia != null && _selectedMediaBytes != null
                         ? Stack(
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.file(
-                                  _selectedMedia!,
+                                child: Image.memory(
+                                  _selectedMediaBytes!,
                                   width: double.infinity,
                                   height: double.infinity,
                                   fit: BoxFit.cover,
@@ -342,6 +385,7 @@ class _PostNewsState extends State<PostNews> {
                                   onTap: () {
                                     setState(() {
                                       _selectedMedia = null;
+                                      _selectedMediaBytes = null;
                                     });
                                   },
                                   child: Container(

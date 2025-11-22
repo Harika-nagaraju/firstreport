@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:newsapp/utils/appcolors.dart';
 import 'package:newsapp/utils/fontutils.dart';
 import 'package:newsapp/utils/user_registration.dart';
-import 'package:newsapp/main.dart';
+import 'package:newsapp/utils/post_storage.dart';
+import 'package:newsapp/l10n/app_localizations.dart';
+import 'package:newsapp/screens/dashboard/postnews.dart';
 
 class ProfileDetailsScreen extends StatefulWidget {
   const ProfileDetailsScreen({super.key});
@@ -18,6 +20,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   bool _isLoading = true;
+  List<PostItem> _posts = [];
 
   @override
   void initState() {
@@ -36,23 +39,26 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
   Future<void> _loadUserDetails() async {
     final details = await UserRegistration.getUserDetails();
+    final posts = await PostStorage.loadPosts();
     setState(() {
       userDetails = details;
       _nameController.text = details['name'] ?? 'John Doe';
       _emailController.text = details['email'] ?? 'john.doe@example.com';
       _phoneController.text = details['phone'] ?? '+91 98765 43210';
       _locationController.text = 'Mumbai, India';
+      _posts = posts;
       _isLoading = false;
     });
   }
 
   Future<void> _saveChanges() async {
+    final loc = AppLocalizations.of(context)!;
     if (_nameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill all required fields'),
+        SnackBar(
+          content: Text(loc.pleaseFillAllFields),
           backgroundColor: Colors.red,
         ),
       );
@@ -67,11 +73,43 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully'),
+        SnackBar(
+          content: Text(loc.profileUpdatedSuccessfully),
           backgroundColor: Colors.green,
         ),
       );
+    }
+  }
+
+  Future<void> _editPost(PostItem post) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PostNews(
+          initialPost: post,
+          onSubmitted: () {
+            Navigator.of(context).pop(true);
+          },
+        ),
+      ),
+    );
+
+    if (result == true) {
+      final posts = await PostStorage.loadPosts();
+      if (mounted) {
+        setState(() {
+          _posts = posts;
+        });
+      }
+    }
+  }
+
+  Future<void> _deletePost(String id) async {
+    await PostStorage.deletePost(id);
+    final posts = await PostStorage.loadPosts();
+    if (mounted) {
+      setState(() {
+        _posts = posts;
+      });
     }
   }
 
@@ -84,7 +122,6 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
     final bgColor = isDark ? AppColors.darkInputBackground : AppColors.inputBackground;
     final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
     final iconColor = isDark ? AppColors.gradientStart : AppColors.gradientStart;
 
     return Container(
@@ -149,6 +186,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? AppColors.darkBackground : AppColors.screenBackground;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
@@ -177,7 +215,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             ),
           ),
           title: Text(
-            'Profile Details',
+            loc.profileDetails,
             style: FontUtils.bold(size: 18, color: textPrimary),
           ),
           centerTitle: true,
@@ -210,7 +248,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           ),
         ),
         title: Text(
-          'Profile Details',
+          loc.profileDetails,
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         centerTitle: true,
@@ -269,7 +307,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Member since Oct 2024',
+              '${loc.memberSince} Oct 2024',
               style: FontUtils.regular(
                 size: 12,
                 color: textSecondary,
@@ -281,22 +319,22 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             // Information Cards
             _buildInfoCard(
               icon: Icons.person_outline,
-              label: 'Full Name',
+              label: loc.fullName,
               controller: _nameController,
             ),
             _buildInfoCard(
               icon: Icons.email_outlined,
-              label: 'Email Address',
+              label: loc.emailAddress,
               controller: _emailController,
             ),
             _buildInfoCard(
               icon: Icons.phone_outlined,
-              label: 'Phone Number',
+              label: loc.phoneNumber,
               controller: _phoneController,
             ),
             _buildInfoCard(
               icon: Icons.location_on_outlined,
-              label: 'Location',
+              label: loc.location,
               controller: _locationController,
             ),
             const SizedBox(height: 24),
@@ -329,7 +367,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Posts',
+                          loc.posts,
                           style: FontUtils.regular(
                             size: 14,
                             color: textSecondary,
@@ -365,7 +403,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Reads',
+                          loc.reads,
                           style: FontUtils.regular(
                             size: 14,
                             color: textSecondary,
@@ -378,6 +416,101 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
               ],
             ),
             const SizedBox(height: 32),
+            // My Posts section
+            if (_posts.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'My Posts',
+                    style: FontUtils.bold(
+                      size: 18,
+                      color: textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _posts.length,
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  return Container(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                post.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: FontUtils.bold(
+                                  size: 14,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                post.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: FontUtils.regular(
+                                  size: 12,
+                                  color: textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit,
+                                size: 20,
+                                color: AppColors.gradientStart,
+                              ),
+                              onPressed: () => _editPost(post),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: Colors.redAccent,
+                              ),
+                              onPressed: () => _deletePost(post.id),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
             // Save Changes Button
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -394,7 +527,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                   borderRadius: BorderRadius.circular(28),
                   child: Center(
                     child: Text(
-                      'Save Changes',
+                      loc.saveChanges,
                       style: FontUtils.bold(
                         size: 16,
                         color: AppColors.white,

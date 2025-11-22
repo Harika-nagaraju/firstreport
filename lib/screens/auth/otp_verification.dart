@@ -1,52 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:newsapp/utils/appcolors.dart';
 import 'package:newsapp/utils/fontutils.dart';
+import 'package:newsapp/screens/auth/reset_password.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+class OtpVerificationScreen extends StatefulWidget {
+  final String email;
+
+  const OtpVerificationScreen({super.key, required this.email});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  bool _isResending = false;
 
   @override
   void dispose() {
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
-  String? _validatePassword(String? value) {
+  String? _validateOtp(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter your new password';
+      return 'Please enter the OTP';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+    if (value.length < 4) {
+      return 'OTP must be at least 4 digits';
     }
     return null;
   }
 
-  String? _validateConfirmPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please confirm your new password';
-    }
-    if (value != _passwordController.text) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
-
-  Future<void> _resetPassword() async {
+  Future<void> _verifyOtp() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -61,22 +50,47 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _isLoading = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Password changed successfully'),
+    // For now we accept any non-empty OTP that passes validation
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const ResetPasswordScreen(),
       ),
     );
+  }
 
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  Future<void> _resendOtp() async {
+    if (_isResending || _isLoading) return;
+
+    setState(() {
+      _isResending = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (!mounted) return;
+
+    setState(() {
+      _isResending = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppColors.textDarkGrey,
+        content: Text(
+          'A new OTP has been sent to ${widget.email}',
+          style: FontUtils.regular(size: 14, color: AppColors.white),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor = isDark
-        ? AppColors.darkBackground
-        : AppColors.screenBackground;
+    final bgColor =
+        isDark ? AppColors.darkBackground : AppColors.screenBackground;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
     final textPrimary =
         isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
@@ -101,7 +115,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
         title: Text(
-          'Reset Password',
+          'Verify OTP',
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         centerTitle: true,
@@ -116,7 +130,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               children: [
                 const SizedBox(height: 24),
                 Text(
-                  'Create new password',
+                  'Check your email',
                   style: FontUtils.bold(
                     size: 24,
                     color: textPrimary,
@@ -124,7 +138,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your new password should be different from the previous one.',
+                  'We have sent a one-time password (OTP) to ${widget.email}. Please enter it below to continue.',
                   style: FontUtils.regular(
                     size: 14,
                     color: textSecondary,
@@ -132,7 +146,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 const SizedBox(height: 32),
                 Text(
-                  'New Password',
+                  'Enter OTP',
                   style: FontUtils.bold(
                     size: 16,
                     color: textPrimary,
@@ -149,10 +163,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     ),
                   ),
                   child: TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
+                    controller: _otpController,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      hintText: 'Enter new password',
+                      hintText: 'Enter the OTP',
                       hintStyle: FontUtils.regular(
                         size: 14,
                         color: textSecondary,
@@ -162,85 +176,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         horizontal: 16,
                         vertical: 14,
                       ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                      ),
                     ),
                     style: FontUtils.regular(
                       size: 14,
                       color: textPrimary,
                     ),
-                    validator: _validatePassword,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Confirm Password',
-                  style: FontUtils.bold(
-                    size: 16,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: _obscureConfirmPassword,
-                    decoration: InputDecoration(
-                      hintText: 'Re-enter new password',
-                      hintStyle: FontUtils.regular(
-                        size: 14,
-                        color: textSecondary,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          color: textSecondary,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                      ),
-                    ),
-                    style: FontUtils.regular(
-                      size: 14,
-                      color: textPrimary,
-                    ),
-                    validator: _validateConfirmPassword,
+                    validator: _validateOtp,
                   ),
                 ),
                 const SizedBox(height: 32),
                 GestureDetector(
-                  onTap: _isLoading ? null : _resetPassword,
+                  onTap: _isLoading ? null : _verifyOtp,
                   child: Container(
                     width: double.infinity,
                     height: 56,
@@ -257,20 +203,43 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(
+                                valueColor: AlwaysStoppedAnimation<Color>(
                                   AppColors.white,
                                 ),
                               ),
                             )
                           : Text(
-                              'Save Password',
+                              'Verify & Continue',
                               style: FontUtils.bold(
                                 size: 16,
                                 color: AppColors.white,
                               ),
                             ),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton(
+                    onPressed: _isResending ? null : _resendOtp,
+                    child: _isResending
+                        ? SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.gradientStart,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            'Resend OTP',
+                            style: FontUtils.bold(
+                              size: 14,
+                              color: AppColors.gradientStart,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -281,4 +250,3 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 }
-

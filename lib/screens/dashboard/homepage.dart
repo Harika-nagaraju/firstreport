@@ -28,7 +28,7 @@ class _HomePageState extends State<HomePage> {
   String? currentLanguage;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  final bool _hasNotifications = true;
+  bool _hasNotifications = true;
 
   static final Map<String, Map<String, String>> _categoryLabels = {
     'en': {
@@ -429,12 +429,17 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(width: 8),
                       GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).push(
+                        onTap: () async {
+                          await Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const NotificationsScreen(),
                             ),
                           );
+                          if (mounted) {
+                            setState(() {
+                              _hasNotifications = false;
+                            });
+                          }
                         },
                         child: Container(
                           padding: const EdgeInsets.all(8),

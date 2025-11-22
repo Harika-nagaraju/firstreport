@@ -20,7 +20,14 @@ class _DashboardState extends State<Dashboard> {
 
   List<Widget> get _screens => [
     const HomePage(),
-    PostNews(key: ValueKey(_postNewsKey)),
+    PostNews(
+      key: ValueKey(_postNewsKey),
+      onSubmitted: () {
+        setState(() {
+          _currentIndex = 0;
+        });
+      },
+    ),
     const SettingsPage(),
   ];
 
@@ -127,7 +134,7 @@ class _DashboardState extends State<Dashboard> {
     final isRegistered = await UserRegistration.isRegistered();
     
     if (!isRegistered) {
-      // Navigate to registration screen
+      // Navigate to signup screen (which can go to login)
       final result = await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => const RegistrationScreen(),

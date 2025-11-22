@@ -8,7 +8,7 @@ import 'package:newsapp/screens/auth/language_selection_new.dart';
 import 'package:newsapp/screens/dashboard/profile_details.dart';
 import 'package:newsapp/screens/settings/privacy_policy.dart';
 import 'package:newsapp/screens/settings/terms_conditions.dart';
-import 'package:newsapp/screens/dashboard/notifications_screen.dart';
+import 'package:newsapp/screens/settings/notification_settings.dart';
 import 'package:newsapp/screens/dashboard/saved_news_screen.dart';
 import 'package:newsapp/l10n/app_localizations.dart';
 import 'package:newsapp/main.dart';
@@ -108,7 +108,11 @@ class _SettingsPageState extends State<SettingsPage> {
   void _handleNotificationsTap() {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
+    ).push(
+      MaterialPageRoute(
+        builder: (_) => const NotificationSettingsScreen(),
+      ),
+    );
   }
 
   void _handleDarkModeToggle(bool value) async {

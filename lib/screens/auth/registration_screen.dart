@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:newsapp/utils/appcolors.dart';
 import 'package:newsapp/utils/fontutils.dart';
 import 'package:newsapp/utils/user_registration.dart';
+import 'package:newsapp/screens/auth/login.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -15,6 +16,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
 
@@ -23,6 +25,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -60,6 +63,25 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return null;
   }
 
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter a password';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
+  }
+
+  Future<void> _goToLogin() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+    if (result == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   String? _validatePhone(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please enter your phone number';
@@ -72,22 +94,36 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor =
+        isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final cardColor = isDark ? AppColors.darkCard : AppColors.white;
+    final textPrimary =
+        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final inputBg =
+        isDark ? AppColors.darkInputBackground : AppColors.inputBackground;
+    final borderColor =
+        isDark ? AppColors.darkBorder : AppColors.borderUnselected;
+
     return Scaffold(
-      backgroundColor: AppColors.screenBackground,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: cardColor,
         elevation: 0,
         leading: GestureDetector(
           onTap: () => Navigator.of(context).pop(),
-          child: const Icon(
+          child: Icon(
             Icons.arrow_back,
-            color: AppColors.textDarkGrey,
+            color: textPrimary,
             size: 24,
           ),
         ),
         title: Text(
-          'Registration',
-          style: FontUtils.bold(size: 18),
+          'Sign Up',
+          style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         centerTitle: true,
       ),
@@ -102,10 +138,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 const SizedBox(height: 24),
                 // Header Text
                 Text(
-                  'Personal Details',
+                  'Create your account',
                   style: FontUtils.bold(
                     size: 24,
-                    color: AppColors.textDarkGrey,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -113,7 +149,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   'Please provide your details to post news',
                   style: FontUtils.regular(
                     size: 14,
-                    color: AppColors.textLightGrey,
+                    color: textSecondary,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -122,16 +158,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   'Full Name',
                   style: FontUtils.bold(
                     size: 16,
-                    color: AppColors.textDarkGrey,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.inputBackground,
+                    color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.borderUnselected,
+                      color: borderColor,
                       width: 1,
                     ),
                   ),
@@ -141,7 +177,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       hintText: 'Enter your full name',
                       hintStyle: FontUtils.regular(
                         size: 14,
-                        color: AppColors.textLightGrey,
+                        color: textSecondary,
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -151,7 +187,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     style: FontUtils.regular(
                       size: 14,
-                      color: AppColors.textDarkGrey,
+                      color: textPrimary,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -167,16 +203,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   'Email',
                   style: FontUtils.bold(
                     size: 16,
-                    color: AppColors.textDarkGrey,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.inputBackground,
+                    color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.borderUnselected,
+                      color: borderColor,
                       width: 1,
                     ),
                   ),
@@ -187,7 +223,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       hintText: 'Enter your email',
                       hintStyle: FontUtils.regular(
                         size: 14,
-                        color: AppColors.textLightGrey,
+                        color: textSecondary,
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -197,7 +233,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     style: FontUtils.regular(
                       size: 14,
-                      color: AppColors.textDarkGrey,
+                      color: textPrimary,
                     ),
                     validator: _validateEmail,
                   ),
@@ -208,16 +244,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   'Phone Number',
                   style: FontUtils.bold(
                     size: 16,
-                    color: AppColors.textDarkGrey,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.inputBackground,
+                    color: inputBg,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.borderUnselected,
+                      color: borderColor,
                       width: 1,
                     ),
                   ),
@@ -228,7 +264,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       hintText: 'Enter your phone number',
                       hintStyle: FontUtils.regular(
                         size: 14,
-                        color: AppColors.textLightGrey,
+                        color: textSecondary,
                       ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
@@ -238,13 +274,54 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     style: FontUtils.regular(
                       size: 14,
-                      color: AppColors.textDarkGrey,
+                      color: textPrimary,
                     ),
                     validator: _validatePhone,
                   ),
                 ),
+                const SizedBox(height: 24),
+                // Password Field
+                Text(
+                  'Password',
+                  style: FontUtils.bold(
+                    size: 16,
+                    color: textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: inputBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: borderColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      hintText: 'Create a password',
+                      hintStyle: FontUtils.regular(
+                        size: 14,
+                        color: textSecondary,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                    style: FontUtils.regular(
+                      size: 14,
+                      color: textPrimary,
+                    ),
+                    validator: _validatePassword,
+                  ),
+                ),
                 const SizedBox(height: 32),
-                // Register Button
+                // Sign Up Button
                 GestureDetector(
                   onTap: _isLoading ? null : _register,
                   child: Container(
@@ -268,7 +345,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               ),
                             )
                           : Text(
-                              'Register',
+                              'Sign Up',
                               style: FontUtils.bold(
                                 size: 16,
                                 color: AppColors.white,
@@ -276,6 +353,29 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Already have an account? ',
+                      style: FontUtils.regular(
+                        size: 13,
+                        color: textSecondary,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _goToLogin,
+                      child: Text(
+                        'Login',
+                        style: FontUtils.bold(
+                          size: 13,
+                          color: AppColors.gradientStart,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
               ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:newsapp/utils/appcolors.dart';
 import 'package:newsapp/utils/fontutils.dart';
 import 'package:newsapp/utils/language_preference.dart';
-import 'package:newsapp/utils/theme_preference.dart';
 import 'package:newsapp/screens/dashboard/dashboard.dart';
 import 'package:newsapp/l10n/app_localizations.dart';
 import 'package:newsapp/main.dart';

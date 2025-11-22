@@ -61,17 +61,17 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     });
   }
 
-  Color _optionColor(int index) {
+  Color _optionColor(int index, bool isDark) {
     if (selectedOption == null) {
-      return AppColors.white;
+      return isDark ? AppColors.darkSurface : AppColors.white;
     }
     if (index == currentQuestion.answerIndex) {
-      return const Color(0xFFD0F2DC);
+      return isDark ? const Color(0xFF1B5E20) : const Color(0xFFD0F2DC);
     }
     if (index == selectedOption) {
-      return const Color(0xFFFAD4D4);
+      return isDark ? const Color(0xFF5D1F1F) : const Color(0xFFFAD4D4);
     }
-    return AppColors.white;
+    return isDark ? AppColors.darkSurface : AppColors.white;
   }
 
   IconData? _optionIcon(int index) {
@@ -126,6 +126,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
     final progress = (currentIndex + 1) / total;
     final progressBackground =
         isDark ? AppColors.darkSurface : AppColors.backgroundLightGrey;
+    final defaultBorderColor =
+        isDark ? AppColors.darkBorder : AppColors.backgroundLightGrey;
+    final boxShadowColor =
+        isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.06);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +156,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: boxShadowColor,
                 blurRadius: 10,
                 offset: const Offset(0, 6),
               ),
@@ -176,16 +180,16 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
-                    color: _optionColor(index),
+                    color: _optionColor(index, isDark),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: selectedOption == null
-                          ? AppColors.backgroundLightGrey
+                          ? defaultBorderColor
                           : index == currentQuestion.answerIndex
                               ? const Color(0xFF4CAF50)
                               : index == selectedOption
                                   ? const Color(0xFFF44336)
-                                  : AppColors.backgroundLightGrey,
+                                  : defaultBorderColor,
                     ),
                   ),
                   child: Row(
@@ -224,8 +228,10 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
               ),
               backgroundColor: AppColors.gradientStart,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.backgroundLightGrey,
-              disabledForegroundColor: AppColors.textLightGrey,
+              disabledBackgroundColor:
+                  isDark ? AppColors.darkSurface : AppColors.backgroundLightGrey,
+              disabledForegroundColor:
+                  isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey,
             ),
             child: Text(
               currentIndex == widget.questions.length - 1 ? 'Finish Quiz' : 'Next Question',
