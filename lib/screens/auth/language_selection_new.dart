@@ -8,17 +8,16 @@ import 'package:newsapp/main.dart';
 
 class LanguageSelectionScreenNew extends StatefulWidget {
   final bool fromSettings;
-  
-  const LanguageSelectionScreenNew({
-    super.key,
-    this.fromSettings = false,
-  });
+
+  const LanguageSelectionScreenNew({super.key, this.fromSettings = false});
 
   @override
-  State<LanguageSelectionScreenNew> createState() => _LanguageSelectionScreenNewState();
+  State<LanguageSelectionScreenNew> createState() =>
+      _LanguageSelectionScreenNewState();
 }
 
-class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew> {
+class _LanguageSelectionScreenNewState
+    extends State<LanguageSelectionScreenNew> {
   String? selectedLanguage;
 
   final List<String> languages = [
@@ -48,23 +47,21 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
     await LanguagePreference.saveLanguage(language);
     final languageCode = LanguagePreference.languages[language]!['code']!;
     final countryCode = LanguagePreference.languages[language]!['country']!;
-    
+
     if (mounted) {
       setState(() {
         selectedLanguage = language;
       });
-      
+
       MyApp.instance?.setLocale(Locale(languageCode, countryCode));
-      
+
       if (widget.fromSettings) {
         Navigator.of(context).pop(true);
       } else {
         // Navigate to dashboard if from splash
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const Dashboard(),
-          ),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const Dashboard()));
       }
     }
   }
@@ -87,10 +84,16 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final bgColor = isDark
+        ? AppColors.darkBackground
+        : AppColors.screenBackground;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.textDarkGrey;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.textLightGrey;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -102,14 +105,12 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
           child: Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : AppColors.backgroundLightGrey,
+              color: isDark
+                  ? AppColors.darkSurface
+                  : AppColors.backgroundLightGrey,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.arrow_back,
-              color: textPrimary,
-              size: 20,
-            ),
+            child: Icon(Icons.arrow_back, color: textPrimary, size: 20),
           ),
         ),
         title: Text(
@@ -125,7 +126,9 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -158,14 +161,13 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
                       children: [
                         Text(
                           localizations?.language ?? 'Language',
-                          style: FontUtils.bold(
-                            size: 18,
-                            color: textPrimary,
-                          ),
+                          style: FontUtils.bold(size: 18, color: textPrimary),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          selectedLanguage ?? localizations?.getLanguageName('en') ?? 'English',
+                          selectedLanguage ??
+                              localizations?.getLanguageName('en') ??
+                              'English',
                           style: FontUtils.regular(
                             size: 14,
                             color: textSecondary,
@@ -176,11 +178,7 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: textSecondary,
-                  ),
+                  Icon(Icons.arrow_forward_ios, size: 16, color: textSecondary),
                 ],
               ),
             ),
@@ -190,11 +188,12 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: languages.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final language = languages[index];
                   final isSelected = selectedLanguage == language;
-                  
+
                   return Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -210,7 +209,8 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
                           borderRadius: BorderRadius.circular(12),
                           border: isSelected && !isDark
                               ? Border.all(
-                                  color: AppColors.selectedLanguageText.withOpacity(0.3),
+                                  color: AppColors.selectedLanguageText
+                                      .withValues(alpha: 0.3),
                                   width: 1,
                                 )
                               : null,
@@ -236,4 +236,3 @@ class _LanguageSelectionScreenNewState extends State<LanguageSelectionScreenNew>
     );
   }
 }
-

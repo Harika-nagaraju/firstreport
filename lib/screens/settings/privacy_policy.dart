@@ -9,10 +9,16 @@ class PrivacyPolicyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final background = isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final background = isDark
+        ? AppColors.darkBackground
+        : AppColors.screenBackground;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.textDarkGrey;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.textLightGrey;
 
     return Scaffold(
       backgroundColor: background,
@@ -34,7 +40,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.35 : 0.05),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.35)
+                    : Colors.black.withValues(alpha: 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -119,18 +127,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: FontUtils.bold(size: 16, color: color),
-          ),
+          Text(title, style: FontUtils.bold(size: 16, color: color)),
           const SizedBox(height: 8),
-          Text(
-            body,
-            style: FontUtils.regular(size: 14, color: subtitleColor),
-          ),
+          Text(body, style: FontUtils.regular(size: 14, color: subtitleColor)),
         ],
       ),
     );
   }
 }
-

@@ -111,7 +111,7 @@ class _LanguageSelectionState extends State<LanguageSelection> {
                   });
                 },
               );
-            }).toList(),
+            }),
             const Spacer(),
             // Continue Button
             CustomButton(
