@@ -1,6 +1,6 @@
 {
-    "name": "newsapp",
-    "short_name": "newsapp",
+    "name": "firstreport",
+    "short_name": "firstreport",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

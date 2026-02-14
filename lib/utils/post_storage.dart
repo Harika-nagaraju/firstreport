@@ -8,6 +8,7 @@ class PostItem {
   final String description;
   final String? url;
   final String? imagePath; // for now just store path/name if needed
+  final String? category;
   final DateTime createdAt;
 
   PostItem({
@@ -16,6 +17,7 @@ class PostItem {
     required this.description,
     this.url,
     this.imagePath,
+    this.category,
     required this.createdAt,
   });
 
@@ -25,6 +27,7 @@ class PostItem {
         'description': description,
         'url': url,
         'imagePath': imagePath,
+        'category': category,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -34,6 +37,7 @@ class PostItem {
         description: json['description'] as String,
         url: json['url'] as String?,
         imagePath: json['imagePath'] as String?,
+        category: json['category'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 }

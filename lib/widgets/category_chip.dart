@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
 
 class CategoryChip extends StatelessWidget {
   final String label;

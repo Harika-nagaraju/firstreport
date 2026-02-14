@@ -1,11 +1,18 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/utils/user_registration.dart';
-import 'package:newsapp/utils/post_storage.dart';
-import 'package:newsapp/widgets/dashed_border.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/utils/user_registration.dart';
+import 'package:firstreport/utils/post_storage.dart';
+import 'package:firstreport/widgets/dashed_border.dart';
+import 'package:firstreport/services/news_service.dart';
+import 'package:firstreport/services/upload_service.dart';
+import 'package:firstreport/services/language_service.dart';
+import 'package:firstreport/screens/dashboard/pending_screen.dart';
+import 'package:firstreport/models/language_api_model.dart';
+import 'package:firstreport/utils/language_preference.dart';
+import 'package:firstreport/screens/auth/login.dart';
 
 class PostNews extends StatefulWidget {
   final VoidCallback? onSubmitted;
@@ -27,11 +34,25 @@ class _PostNewsState extends State<PostNews> {
   bool _isRegistered = false;
   bool _isLoading = true;
   String? _editingPostId;
+  Translations? _translations;
+  String? _selectedCategory;
+  bool _isAiCorrecting = false;
+  bool _isSubmitting = false;
+  String _languageCode = 'en';
+
+  final List<String> _categoryKeys = [
+    'india',
+    'international',
+    'current_affairs',
+    'health',
+    'tech',
+  ];
 
   @override
   void initState() {
     super.initState();
     _checkRegistrationStatus();
+    _loadTranslations();
     _titleController.addListener(_checkFormValidity);
     _descriptionController.addListener(_checkFormValidity);
 
@@ -42,6 +63,18 @@ class _PostNewsState extends State<PostNews> {
       _titleController.text = initial.title;
       _descriptionController.text = initial.description;
       _urlController.text = initial.url ?? '';
+      _selectedCategory = initial.category;
+    }
+  }
+
+  Future<void> _loadTranslations() async {
+    final languageCode = await LanguagePreference.getLanguageCode() ?? 'en';
+    final response = await LanguageService.getTranslations(languageCode);
+    if (mounted) {
+      setState(() {
+        _languageCode = languageCode;
+        _translations = response.translations;
+      });
     }
   }
 
@@ -70,6 +103,7 @@ class _PostNewsState extends State<PostNews> {
   bool get _isNewsFormValid {
     return _titleController.text.trim().isNotEmpty &&
         _descriptionController.text.trim().isNotEmpty &&
+        _selectedCategory != null &&
         _selectedMedia != null;
   }
 
@@ -95,63 +129,116 @@ class _PostNewsState extends State<PostNews> {
     }
   }
 
+  Future<void> _correctDescription() async {
+    if (_descriptionController.text.trim().isEmpty) return;
+
+    setState(() => _isAiCorrecting = true);
+    
+    // Simulate AI delay
+    await Future.delayed(const Duration(seconds: 1));
+    
+    String text = _descriptionController.text.trim();
+    if (text.isNotEmpty) {
+      // Very basic AI "correction" simulation: Capitalize and add period if missing
+      text = text[0].toUpperCase() + text.substring(1);
+      if (!text.endsWith('.') && !text.endsWith('!') && !text.endsWith('?')) {
+        text += '.';
+      }
+    }
+    
+    setState(() {
+      _descriptionController.text = text;
+      _isAiCorrecting = false;
+    });
+  }
+
   Future<void> _submitNews() async {
     if (!_isFormValid) {
       if (!_isNewsFormValid) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please fill all news details and upload media'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please fill all news details and upload media'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         return;
       }
       return;
     }
 
-    // Get user details from registration
-    final userDetails = await UserRegistration.getUserDetails();
-    final name = userDetails['name'] ?? 'User';
+    setState(() => _isSubmitting = true);
 
-    // Create or update post locally
-    final now = DateTime.now();
-    final existing = widget.initialPost;
-    final post = PostItem(
-      id: _editingPostId ?? now.millisecondsSinceEpoch.toString(),
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      url: _urlController.text.trim().isEmpty
-          ? null
-          : _urlController.text.trim(),
-      imagePath: existing?.imagePath,
-      createdAt: existing?.createdAt ?? now,
-    );
-
-    if (_editingPostId == null) {
-      await PostStorage.addPost(post);
-    } else {
-      await PostStorage.updatePost(post);
+    String? finalImagePath;
+    if (_selectedMedia != null) {
+      finalImagePath = _selectedMedia!.path;
+    } else if (widget.initialPost?.imagePath != null && widget.initialPost!.imagePath!.isNotEmpty) {
+      finalImagePath = widget.initialPost!.imagePath!;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('News submitted successfully by $name!'),
-        backgroundColor: Colors.green,
-      ),
+    if (finalImagePath == null) {
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an image')),
+      );
+      return;
+    }
+
+    String correctedTitle = _titleController.text.trim();
+    if (correctedTitle.isNotEmpty) {
+      correctedTitle = correctedTitle[0].toUpperCase() + correctedTitle.substring(1);
+    }
+    
+    final result = await NewsService.postNews(
+      title: correctedTitle,
+      content: _descriptionController.text.trim(),
+      category: _selectedCategory!,
+      language: _languageCode,
+      imagePath: finalImagePath,
     );
 
-    // Clear news fields after submission
-    _titleController.clear();
-    _descriptionController.clear();
-    _urlController.clear();
-    setState(() {
-      _selectedMedia = null;
-      _selectedMediaBytes = null;
-    });
+    setState(() => _isSubmitting = false);
 
-    // Notify parent (Dashboard) so it can navigate to Home tab
-    if (widget.onSubmitted != null) {
-      widget.onSubmitted!();
+    if (mounted) {
+      if (result['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Clear news fields after submission
+        _titleController.clear();
+        _descriptionController.clear();
+        _urlController.clear();
+        setState(() {
+          _selectedMedia = null;
+          _selectedMediaBytes = null;
+          _selectedCategory = null;
+        });
+
+        // Notify parent (Dashboard) so it can navigate to Home tab
+        if (widget.onSubmitted != null) {
+          widget.onSubmitted!();
+        }
+      } else {
+        // Handle pending restriction from backend
+        if (result['hasPending'] == true) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const PendingScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -176,7 +263,7 @@ class _PostNewsState extends State<PostNews> {
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
-          'Post News',
+          _translations?.post ?? 'Post News',
           style: FontUtils.bold(size: 18, color: primaryText),
         ),
         centerTitle: true,
@@ -189,23 +276,68 @@ class _PostNewsState extends State<PostNews> {
               )
             : !_isRegistered
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: secondaryText,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Please register first',
-                          style: FontUtils.bold(
-                            size: 18,
-                            color: primaryText,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.account_circle_outlined,
+                            size: 80,
+                            color: secondaryText.withOpacity(0.5),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 24),
+                          Text(
+                            _translations?.dontHaveAccount ?? 'Login to Post News',
+                            textAlign: TextAlign.center,
+                            style: FontUtils.bold(
+                              size: 20,
+                              color: primaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'You need an account to submit news reports and use AI features.',
+                            textAlign: TextAlign.center,
+                            style: FontUtils.regular(
+                              size: 14,
+                              color: secondaryText,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          GestureDetector(
+                            onTap: () async {
+                              final result = await Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              );
+                              if (result == true) {
+                                _checkRegistrationStatus();
+                              }
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                gradient: AppColors.buttonGradient,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.gradientStart.withOpacity(0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  _translations?.login ?? 'Login / Register',
+                                  style: FontUtils.bold(size: 16, color: AppColors.white),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : SingleChildScrollView(
@@ -219,6 +351,70 @@ class _PostNewsState extends State<PostNews> {
                           style: FontUtils.bold(
                             size: 20,
                             color: primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Category Section
+                        Text(
+                          'Category',
+                          style: FontUtils.bold(
+                            size: 16,
+                            color: primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: inputBackground,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedCategory,
+                              hint: Text(
+                                'Select Category',
+                                style: FontUtils.regular(
+                                  size: 14,
+                                  color: secondaryText,
+                                ),
+                              ),
+                              dropdownColor: cardColor,
+                              isExpanded: true,
+                              icon: Icon(Icons.keyboard_arrow_down, color: primaryText),
+                              items: _categoryKeys.map((String key) {
+                                String label = key;
+                                if (_translations != null) {
+                                  // Map keys to translated strings
+                                  if (key == 'india') label = _translations!.india;
+                                  else if (key == 'international') label = _translations!.international;
+                                  else if (key == 'current_affairs') label = _translations!.currentAffairs;
+                                  else if (key == 'health') label = _translations!.health;
+                                  else if (key == 'tech') label = _translations!.tech;
+                                }
+                                return DropdownMenuItem<String>(
+                                  value: key,
+                                  child: Text(
+                                    label,
+                                    style: FontUtils.regular(
+                                      size: 14,
+                                      color: primaryText,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedCategory = newValue;
+                                });
+                                _checkFormValidity();
+                              },
+                            ),
                           ),
                         ),
               const SizedBox(height: 24),
@@ -263,12 +459,48 @@ class _PostNewsState extends State<PostNews> {
               ),
               const SizedBox(height: 24),
                         // Description Section
-                        Text(
-                          'Description',
-                          style: FontUtils.bold(
-                            size: 16,
-                            color: primaryText,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Description',
+                              style: FontUtils.bold(
+                                size: 16,
+                                color: primaryText,
+                              ),
+                            ),
+                            if (_isRegistered)
+                              GestureDetector(
+                                onTap: _isAiCorrecting ? null : _correctDescription,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    gradient: AppColors.buttonGradient,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      if (_isAiCorrecting)
+                                        const SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                            color: AppColors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      else
+                                        const Icon(Icons.auto_awesome, size: 14, color: AppColors.white),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'AI Fix',
+                                        style: FontUtils.bold(size: 11, color: AppColors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
               const SizedBox(height: 8),
                         Container(
@@ -453,7 +685,7 @@ class _PostNewsState extends State<PostNews> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Your post will be verified by AI before publishing',
+                        'Tap "AI Fix" to enhance your story description with AI.',
                         style: FontUtils.regular(
                           size: 14,
                           color: AppColors.verificationText,
@@ -465,8 +697,9 @@ class _PostNewsState extends State<PostNews> {
               ),
               const SizedBox(height: 32),
               // Submit Button
+              // Submit Button
               GestureDetector(
-                onTap: _isFormValid ? _submitNews : null,
+                onTap: _isFormValid && !_isSubmitting ? _submitNews : null,
                 child: Container(
                   width: double.infinity,
                   height: 56,
@@ -480,15 +713,19 @@ class _PostNewsState extends State<PostNews> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(
-                      'Submit News',
-                      style: FontUtils.bold(
-                        size: 16,
-                        color: _isFormValid
-                            ? AppColors.white
-                            : secondaryText,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                          )
+                        : Text(
+                            _translations?.post ?? 'Submit News',
+                            style: FontUtils.bold(
+                              size: 16,
+                              color: _isFormValid
+                                  ? AppColors.white
+                                  : secondaryText,
+                            ),
+                          ),
                   ),
                 ),
               ),

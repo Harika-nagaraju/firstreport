@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:newsapp/screens/splashscreen/splashscreen.dart';
-import 'package:newsapp/l10n/app_localizations.dart';
-import 'package:newsapp/utils/language_preference.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/theme_preference.dart';
+import 'package:provider/provider.dart';
+
+import 'package:firstreport/screens/splashscreen/splashscreen.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/theme_preference.dart';
+import 'package:firstreport/providers/language_provider.dart';
+import 'package:firstreport/l10n/app_localizations.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Global key to access app state
 GlobalKey<MyAppState>? appStateKey;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Small delay to allow platform channels to warm up
+  await Future.delayed(const Duration(milliseconds: 100));
+  await Firebase.initializeApp();
+  
   appStateKey = GlobalKey<MyAppState>();
-  runApp(MyApp(key: appStateKey));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LanguageProvider(),
+      child: MyApp(key: appStateKey),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -25,24 +39,29 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> {
-  Locale _locale = const Locale('en', 'US');
   bool _isDarkMode = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedLanguage();
     _loadThemePreference();
+    _initializeFirebase();
   }
 
-  Future<void> _loadSavedLanguage() async {
-    final languageCode = await LanguagePreference.getLanguageCode();
-    final countryCode = await LanguagePreference.getCountryCode();
-    
-    if (mounted) {
-      setState(() {
-        _locale = Locale(languageCode ?? 'en', countryCode ?? 'US');
+  Future<void> _initializeFirebase() async {
+    try {
+      // Get and print FCM token
+      String? fcmToken = await FirebaseMessaging.instance.getToken();
+      debugPrint("🚀 FCM Token: $fcmToken");
+      
+      // Subscribe to broadcast topic
+      FirebaseMessaging.instance.subscribeToTopic("all_users").then((_) {
+        debugPrint("🔔 Subscribed to 'all_users' topic");
+      }).catchError((e) {
+        debugPrint("❌ Error subscribing to topic: $e");
       });
+    } catch (e) {
+      debugPrint("❌ Error in Firebase init: $e");
     }
   }
 
@@ -53,12 +72,6 @@ class MyAppState extends State<MyApp> {
         _isDarkMode = isDark;
       });
     }
-  }
-
-  void setLocale(Locale locale) {
-    setState(() {
-      _locale = locale;
-    });
   }
 
   void setThemeMode(bool isDark) async {
@@ -104,26 +117,31 @@ class MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final languageProvider = context.watch<LanguageProvider>();
+    
     return MaterialApp(
       title: 'First Report',
       debugShowCheckedModeBanner: false,
       theme: _lightTheme,
       darkTheme: _darkTheme,
       themeMode: _isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      locale: _locale,
+      
+      // Localization configuration
+      locale: languageProvider.locale,
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('hi'), // Hindi
+        Locale('te'), // Telugu
+        Locale('ta'), // Tamil
+        Locale('kn'), // Kannada
+      ],
       localizationsDelegates: const [
-        AppLocalizations.delegate,
+        AppLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en', 'US'), // English
-        Locale('hi', 'IN'), // Hindi
-        Locale('te', 'IN'), // Telugu
-        Locale('ta', 'IN'), // Tamil
-        Locale('kn', 'IN'), // Kannada
-      ],
+      
       home: const SplashScreen(),
     );
   }

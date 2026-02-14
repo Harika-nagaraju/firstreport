@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/screens/dashboard/homepage.dart';
-import 'package:newsapp/screens/dashboard/postnews.dart';
-import 'package:newsapp/screens/dashboard/settings.dart';
-import 'package:newsapp/screens/auth/registration_screen.dart';
-import 'package:newsapp/utils/user_registration.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/screens/dashboard/homepage.dart';
+import 'package:firstreport/screens/dashboard/postnews.dart';
+import 'package:firstreport/screens/dashboard/settings.dart';
+import 'package:firstreport/screens/dashboard/pending_screen.dart';
+import 'package:firstreport/services/news_service.dart';
+import 'package:firstreport/screens/quizzes/quizzes_screen.dart';
+import 'package:firstreport/screens/auth/registration_screen.dart';
+import 'package:firstreport/screens/auth/login.dart';
+import 'package:firstreport/utils/user_registration.dart';
+import 'package:firstreport/l10n/app_localizations.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -28,6 +33,13 @@ class _DashboardState extends State<Dashboard> {
         });
       },
     ),
+    QuizzesScreen(
+      onBack: () {
+        setState(() {
+          _currentIndex = 0;
+        });
+      },
+    ),
     const SettingsPage(),
   ];
 
@@ -41,13 +53,11 @@ class _DashboardState extends State<Dashboard> {
     final inactiveColor =
         isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
     final activeColor = AppColors.gradientStart;
+    final localizations = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: scaffoldColor,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: navColor,
@@ -67,22 +77,29 @@ class _DashboardState extends State<Dashboard> {
               children: [
                 _buildNavItem(
                   icon: Icons.home,
-                  label: 'Home',
+                  label: localizations.home,
                   index: 0,
                   activeColor: activeColor,
                   inactiveColor: inactiveColor,
                 ),
                 _buildNavItem(
                   icon: Icons.add_circle_outline,
-                  label: 'Post',
+                  label: localizations.post,
                   index: 1,
                   activeColor: activeColor,
                   inactiveColor: inactiveColor,
                 ),
                 _buildNavItem(
-                  icon: Icons.settings,
-                  label: 'Settings',
+                  icon: Icons.quiz_outlined,
+                  label: localizations.quiz,
                   index: 2,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
+                ),
+                _buildNavItem(
+                  icon: Icons.settings,
+                  label: localizations.settings,
+                  index: 3,
                   activeColor: activeColor,
                   inactiveColor: inactiveColor,
                 ),
@@ -130,29 +147,54 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Future<void> _handlePostTab() async {
-    // Check if user is registered
-    final isRegistered = await UserRegistration.isRegistered();
+    // 1. Check if user is currently logged in (has token)
+    final isLoggedIn = await UserRegistration.isRegistered();
     
-    if (!isRegistered) {
-      // Navigate to signup screen (which can go to login)
+    if (isLoggedIn) {
+      // 3. Already logged in, check for pending status before showing Post News
+      final hasPending = await NewsService.checkPendingStatus();
+      
+      if (hasPending && mounted) {
+        // Navigate to Pending screen
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const PendingScreen()),
+        );
+        return;
+      }
+
+      // No pending news, directly show Post News
+      setState(() {
+        _currentIndex = 1;
+      });
+      return;
+    }
+
+    // 2. Not logged in, check if an account "already exists" on this device
+    final alreadyExist = await UserRegistration.hasAccount();
+    
+    Widget targetScreen;
+    if (alreadyExist) {
+      // Returning user who signed out - show Login
+      targetScreen = const LoginScreen();
+    } else {
+      // Brand new install - show Sign Up
+      targetScreen = const RegistrationScreen();
+    }
+
+    if (mounted) {
       final result = await Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => const RegistrationScreen(),
+          builder: (_) => targetScreen,
         ),
       );
       
-      // After registration, navigate to Post News and refresh it
+      // After successful authentication (returned true), navigate to Post News
       if (result == true && mounted) {
         setState(() {
           _postNewsKey++; // Force PostNews to rebuild
           _currentIndex = 1;
         });
       }
-    } else {
-      // Already registered, directly show Post News
-      setState(() {
-        _currentIndex = 1;
-      });
     }
   }
 

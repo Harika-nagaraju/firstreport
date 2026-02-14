@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/utils/user_registration.dart';
-import 'package:newsapp/screens/auth/login.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/utils/user_registration.dart';
+import 'package:firstreport/services/auth_service.dart';
+import 'package:firstreport/screens/auth/login.dart';
+import 'package:firstreport/services/language_service.dart';
+import 'package:firstreport/models/language_api_model.dart';
+import 'package:firstreport/utils/language_preference.dart';
+
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -19,6 +24,24 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  Translations? _translations;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTranslations();
+  }
+
+  Future<void> _loadTranslations() async {
+    final languageCode = await LanguagePreference.getLanguageCode() ?? 'en';
+    final response = await LanguageService.getTranslations(languageCode);
+    if (mounted) {
+      setState(() {
+        _translations = response.translations;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -35,20 +58,90 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         _isLoading = true;
       });
 
-      // Save registration details
-      await UserRegistration.saveRegistration(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        phone: _phoneController.text.trim(),
-      );
+      try {
+        final response = await AuthService.register(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+
+          if (response.success) {
+            // Save registration details locally upon successful API registration
+            await UserRegistration.saveRegistration(
+              name: _nameController.text.trim(),
+              email: _emailController.text.trim(),
+              phone: _phoneController.text.trim(),
+              token: response.token,
+            );
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response.message.isNotEmpty
+                    ? response.message
+                    : 'Registration successful!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            // Navigate back to previous screen
+            Navigator.of(context).pop(true);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(response.message),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('An unexpected error occurred. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _registerWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await AuthService.signInWithGoogle();
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        // Navigate back to Post News screen
-        Navigator.of(context).pop(true);
+        setState(() => _isLoading = false);
+        if (response.success) {
+          await UserRegistration.saveRegistration(
+            name: response.user?.name ?? 'Google User',
+            email: response.user?.email ?? '',
+            phone: response.user?.phone ?? '',
+            token: response.token,
+          );
+          Navigator.of(context).pop(true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message), backgroundColor: Colors.red),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google registration failed: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
@@ -96,17 +189,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bgColor =
-        isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final bgColor = isDark ? AppColors.darkBackground : AppColors.screenBackground;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary =
-        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
-    final inputBg =
-        isDark ? AppColors.darkInputBackground : AppColors.inputBackground;
-    final borderColor =
-        isDark ? AppColors.darkBorder : AppColors.borderUnselected;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final inputBg = isDark ? AppColors.darkInputBackground : AppColors.inputBackground;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.borderUnselected;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -122,263 +210,293 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
         ),
         title: Text(
-          'Sign Up',
+          _translations?.signup ?? 'Sign Up',
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                // Header Text
-                Text(
-                  'Create your account',
-                  style: FontUtils.bold(
-                    size: 24,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Please provide your details to post news',
-                  style: FontUtils.regular(
-                    size: 14,
-                    color: textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                // Name Field
-                Text(
-                  'Full Name',
-                  style: FontUtils.bold(
-                    size: 16,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/images/app_icon.png',
+                          width: 160,
+                          height: 160,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'First Report',
+                          style: FontUtils.bold(
+                            size: 32,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your full name',
-                      hintStyle: FontUtils.regular(
-                        size: 14,
-                        color: textSecondary,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    style: FontUtils.regular(
-                      size: 14,
+                  const SizedBox(height: 32),
+                  Text(
+                    _translations?.createAccount ?? 'Create your account',
+                    style: FontUtils.bold(
+                      size: 24,
                       color: textPrimary,
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your name';
-                      }
-                      return null;
-                    },
                   ),
-                ),
-                const SizedBox(height: 24),
-                // Email Field
-                Text(
-                  'Email',
-                  style: FontUtils.bold(
-                    size: 16,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your email',
-                      hintStyle: FontUtils.regular(
-                        size: 14,
-                        color: textSecondary,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please provide your details to post news',
                     style: FontUtils.regular(
                       size: 14,
+                      color: textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    _translations?.fullNameLabel ?? 'Full Name',
+                    style: FontUtils.bold(
+                      size: 16,
                       color: textPrimary,
                     ),
-                    validator: _validateEmail,
                   ),
-                ),
-                const SizedBox(height: 24),
-                // Phone Field
-                Text(
-                  'Phone Number',
-                  style: FontUtils.bold(
-                    size: 16,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your phone number',
-                      hintStyle: FontUtils.regular(
-                        size: 14,
-                        color: textSecondary,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    style: FontUtils.regular(
-                      size: 14,
-                      color: textPrimary,
-                    ),
-                    validator: _validatePhone,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Password Field
-                Text(
-                  'Password',
-                  style: FontUtils.bold(
-                    size: 16,
-                    color: textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: inputBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      hintText: 'Create a password',
-                      hintStyle: FontUtils.regular(
-                        size: 14,
-                        color: textSecondary,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    style: FontUtils.regular(
-                      size: 14,
-                      color: textPrimary,
-                    ),
-                    validator: _validatePassword,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                // Sign Up Button
-                GestureDetector(
-                  onTap: _isLoading ? null : _register,
-                  child: Container(
-                    width: double.infinity,
-                    height: 56,
+                  const SizedBox(height: 8),
+                  Container(
                     decoration: BoxDecoration(
-                      gradient: _isLoading ? null : AppColors.buttonGradient,
-                      color: _isLoading ? AppColors.disabledButton : null,
+                      color: inputBg,
                       borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.white,
-                                ),
-                              ),
-                            )
-                          : Text(
-                              'Sign Up',
-                              style: FontUtils.bold(
-                                size: 16,
-                                color: AppColors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Already have an account? ',
-                      style: FontUtils.regular(
-                        size: 13,
-                        color: textSecondary,
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: _goToLogin,
-                      child: Text(
-                        'Login',
-                        style: FontUtils.bold(
-                          size: 13,
-                          color: AppColors.gradientStart,
+                    child: TextFormField(
+                      controller: _nameController,
+                      style: FontUtils.regular(size: 14, color: textPrimary),
+                      decoration: InputDecoration(
+                        hintText: _translations?.fullNameHint ?? 'Enter your full name',
+                        hintStyle: FontUtils.regular(size: 14, color: textSecondary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _translations?.emailLabel ?? 'Email',
+                    style: FontUtils.bold(
+                      size: 16,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: inputBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: FontUtils.regular(size: 14, color: textPrimary),
+                      decoration: InputDecoration(
+                        hintText: _translations?.emailHint ?? 'Enter your email',
+                        hintStyle: FontUtils.regular(size: 14, color: textSecondary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      validator: _validateEmail,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _translations?.phoneNumberLabel ?? 'Phone Number',
+                    style: FontUtils.bold(
+                      size: 16,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: inputBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: FontUtils.regular(size: 14, color: textPrimary),
+                      decoration: InputDecoration(
+                        hintText: _translations?.phoneNumberHint ?? 'Enter your phone number',
+                        hintStyle: FontUtils.regular(size: 14, color: textSecondary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      validator: _validatePhone,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _translations?.passwordLabel ?? 'Password',
+                    style: FontUtils.bold(
+                      size: 16,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: inputBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: borderColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: FontUtils.regular(size: 14, color: textPrimary),
+                      decoration: InputDecoration(
+                        hintText: _translations?.passwordHint ?? 'Create a password',
+                        hintStyle: FontUtils.regular(size: 14, color: textSecondary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: textSecondary,
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
                         ),
                       ),
+                      validator: _validatePassword,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-              ],
+                  ),
+                  const SizedBox(height: 32),
+                  GestureDetector(
+                    onTap: _isLoading ? null : _register,
+                    child: Container(
+                      width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        gradient: _isLoading ? null : AppColors.buttonGradient,
+                        color: _isLoading ? AppColors.disabledButton : null,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                                ),
+                              )
+                            : Text(
+                                _translations?.signup ?? 'Sign Up',
+                                style: FontUtils.bold(size: 16, color: AppColors.white),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // OR DIVIDER
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: borderColor)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: FontUtils.regular(size: 12, color: textSecondary),
+                        ),
+                      ),
+                      Expanded(child: Divider(color: borderColor)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // GOOGLE LOGIN BUTTON
+                  GestureDetector(
+                    onTap: _isLoading ? null : _registerWithGoogle,
+                    child: Container(
+                      width: double.infinity,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.network(
+                            'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_\"G\"_Logo.svg/1024px-Google_\"G\"_Logo.svg.png',
+                            height: 24,
+                            width: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _translations?.continueWithGoogle ?? 'Continue with Google',
+                            style: FontUtils.bold(size: 15, color: textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _translations?.alreadyHaveAccount ?? 'Already have an account? ',
+                        style: FontUtils.regular(size: 13, color: textSecondary),
+                      ),
+                      GestureDetector(
+                        onTap: _goToLogin,
+                        child: Text(
+                          _translations?.login ?? 'Login',
+                          style: FontUtils.bold(size: 13, color: AppColors.gradientStart),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),

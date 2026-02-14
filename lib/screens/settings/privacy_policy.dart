@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/services/language_service.dart';
+import 'package:firstreport/models/language_api_model.dart';
+import 'package:firstreport/utils/language_preference.dart';
 
-class PrivacyPolicyScreen extends StatelessWidget {
+class PrivacyPolicyScreen extends StatefulWidget {
   const PrivacyPolicyScreen({super.key});
+
+  @override
+  State<PrivacyPolicyScreen> createState() => _PrivacyPolicyScreenState();
+}
+
+class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
+  Translations? _translations;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTranslations();
+  }
+
+  Future<void> _loadTranslations() async {
+    final languageCode = await LanguagePreference.getLanguageCode() ?? 'en';
+    final response = await LanguageService.getTranslations(languageCode);
+    if (mounted) {
+      setState(() {
+        _translations = response.translations;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,16 +48,29 @@ class PrivacyPolicyScreen extends StatelessWidget {
         ? AppColors.darkTextSecondary
         : AppColors.textLightGrey;
 
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final privacyTitle = _translations?.privacyPolicy ?? 'Privacy Policy';
+
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
         title: Text(
-          'Privacy Policy',
+          privacyTitle,
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         backgroundColor: cardColor,
         iconTheme: IconThemeData(color: textPrimary),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -41,8 +82,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: isDark
-                    ? Colors.black.withValues(alpha: 0.35)
-                    : Colors.black.withValues(alpha: 0.05),
+                    ? Colors.black.withOpacity(0.35)
+                    : Colors.black.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -65,18 +106,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
               _buildSection(
                 title: 'Information We Collect',
                 body: '''
-\u2022 Profile details such as name, email, phone, and location when you register.
-\u2022 Preferences like language selections and notification choices.
-\u2022 Usage data including saved articles and in-app interactions.''',
+• Profile details such as name, email, phone, and location when you register.
+• Preferences like language selections and notification choices.
+• Usage data including saved articles and in-app interactions.''',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),
               _buildSection(
                 title: 'How We Use Information',
                 body: '''
-\u2022 To personalize the news experience and surface relevant content.
-\u2022 To communicate updates, quizzes, and alerts based on your preferences.
-\u2022 To improve app performance, troubleshoot issues, and analyze trends.''',
+• To personalize the news experience and surface relevant content.
+• To communicate updates, quizzes, and alerts based on your preferences.
+• To improve app performance, troubleshoot issues, and analyze trends.''',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),

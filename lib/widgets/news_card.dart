@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/utils/saved_news.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/utils/saved_news.dart';
+import 'package:firstreport/screens/dashboard/news_detail_screen.dart';
 
 class NewsCard extends StatefulWidget {
   final String imageUrl;
   final String title;
   final String description;
-  final String fullContent; // Full news content for expansion
+  final String fullContent; 
   final String author;
   final String timeAgo;
-  final VoidCallback? onReadMore;
+  final DateTime publishedAt;
+  final String? sourceUrl;
+  final int initialLikes;
+  final int initialShares;
   final VoidCallback? onSave;
+  final VoidCallback? onLike;
+  final VoidCallback? onShare;
   final ValueChanged<bool>? onSaveToggle;
 
   const NewsCard({
@@ -24,8 +30,13 @@ class NewsCard extends StatefulWidget {
     required this.fullContent,
     required this.author,
     required this.timeAgo,
-    this.onReadMore,
+    required this.publishedAt,
+    this.sourceUrl,
+    this.initialLikes = 0,
+    this.initialShares = 0,
     this.onSave,
+    this.onLike,
+    this.onShare,
     this.onSaveToggle,
   });
 
@@ -40,10 +51,14 @@ class _NewsCardState extends State<NewsCard> {
   bool isExpanded = false;
   bool isSaved = false;
   bool isLiked = false;
+  late int likesCount;
+  late int sharesCount;
 
   @override
   void initState() {
     super.initState();
+    likesCount = widget.initialLikes;
+    sharesCount = widget.initialShares;
     _initializeTts();
     _checkIfSaved();
   }
@@ -74,10 +89,8 @@ class _NewsCardState extends State<NewsCard> {
     });
 
     if (isMicEnabled) {
-      // Start speaking
       await _speakNews();
     } else {
-      // Stop speaking
       await flutterTts.stop();
       setState(() {
         isSpeaking = false;
@@ -87,24 +100,56 @@ class _NewsCardState extends State<NewsCard> {
 
   Future<void> _speakNews() async {
     if (!isMicEnabled) return;
-
     final fullText = '${widget.title}. ${widget.description}';
     setState(() {
       isSpeaking = true;
     });
-
     await flutterTts.speak(fullText);
   }
 
   Future<void> _shareNews() async {
-    final text = '${widget.title}\n\n${widget.description}\n\nRead more on First Report';
-    await Share.share(text);
+    String cleanContent = _cleanText(widget.fullContent);
+    String shareText = '${widget.title}\n\n$cleanContent';
+    
+    if (widget.sourceUrl != null && widget.sourceUrl!.isNotEmpty) {
+      shareText += '\n\nRead more at: ${widget.sourceUrl}';
+    }
+    
+    shareText += '\n\nShared via First Report App';
+    
+    await Share.share(shareText);
+    setState(() {
+      sharesCount++;
+    });
+    if (widget.onShare != null) {
+      widget.onShare!();
+    }
+  }
+
+  void _navigateToDetail() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => NewsDetailScreen(
+          imageUrl: widget.imageUrl,
+          title: widget.title,
+          content: widget.fullContent,
+          author: widget.author,
+          publishedAt: widget.publishedAt,
+          sourceUrl: widget.sourceUrl,
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     flutterTts.stop();
     super.dispose();
+  }
+
+  String _cleanText(String text) {
+    // Removes the "[+227 chars]" or similar suffix often added by NewsAPI
+    return text.replaceAll(RegExp(r'\[\+\d+ chars\]'), '').trim();
   }
 
   @override
@@ -117,6 +162,7 @@ class _NewsCardState extends State<NewsCard> {
         isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
     final chipBackground =
         isDark ? AppColors.darkInputBackground : AppColors.backgroundLightGrey;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -134,25 +180,49 @@ class _NewsCardState extends State<NewsCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // News Image
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Container(
-              height: 200,
-              width: double.infinity,
-              color: chipBackground,
-              child: Image.network(
-                widget.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: chipBackground,
-                    child: Icon(
-                      Icons.image_not_supported,
-                      size: 48,
-                      color: textSecondary,
+          GestureDetector(
+            onTap: _navigateToDetail,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                color: chipBackground,
+                child: widget.imageUrl.isEmpty 
+                  ? Center(
+                      child: Image.asset(
+                        'assets/images/app_icon.png',
+                        width: 120, // Medium size for placeholder
+                        height: 120,
+                        opacity: const AlwaysStoppedAnimation(0.3), // Subtly branded
+                      ),
+                    )
+                  : Image.network(
+                      widget.imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                            strokeWidth: 2,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Image.asset(
+                            'assets/images/app_icon.png',
+                            width: 120,
+                            height: 120,
+                            opacity: const AlwaysStoppedAnimation(0.3),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
               ),
             ),
           ),
@@ -167,14 +237,17 @@ class _NewsCardState extends State<NewsCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(
-                        widget.title,
-                        style: FontUtils.bold(
-                          size: 18,
-                          color: textPrimary,
+                      child: GestureDetector(
+                        onTap: _navigateToDetail,
+                        child: Text(
+                          widget.title,
+                          style: FontUtils.bold(
+                            size: 18,
+                            color: textPrimary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -186,20 +259,20 @@ class _NewsCardState extends State<NewsCard> {
                         size: 24,
                         color: isMicEnabled
                             ? AppColors.gradientStart
-                          : textSecondary,
+                            : textSecondary,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Description (collapsible)
+                // Description with Expansion Logic
                 AnimatedCrossFade(
                   duration: const Duration(milliseconds: 300),
                   crossFadeState: isExpanded
                       ? CrossFadeState.showSecond
                       : CrossFadeState.showFirst,
                   firstChild: Text(
-                    widget.description,
+                    _cleanText(widget.description),
                     style: FontUtils.regular(
                       size: 14,
                       color: textSecondary,
@@ -208,7 +281,7 @@ class _NewsCardState extends State<NewsCard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   secondChild: Text(
-                    widget.fullContent,
+                    _cleanText(widget.fullContent),
                     style: FontUtils.regular(
                       size: 14,
                       color: textSecondary,
@@ -235,29 +308,67 @@ class _NewsCardState extends State<NewsCard> {
                   runSpacing: 8,
                   alignment: WrapAlignment.start,
                   children: [
-                    // Like Button (Icon Only)
+                    // Like Button with Counter
                     GestureDetector(
                       onTap: () {
                         setState(() {
-                          isLiked = !isLiked;
+                          if (!isLiked) {
+                            isLiked = true;
+                            likesCount++;
+                            if (widget.onLike != null) {
+                              widget.onLike!();
+                            }
+                          } else {
+                            isLiked = false;
+                            likesCount--;
+                          }
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: chipBackground,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          size: 20,
-                          color: isLiked ? Colors.red : textSecondary,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isLiked ? Icons.favorite : Icons.favorite_border,
+                              size: 18,
+                              color: isLiked ? Colors.red : textSecondary,
+                            ),
+                            if (likesCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '$likesCount',
+                                style: FontUtils.regular(
+                                  size: 12,
+                                  color: textSecondary,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
-                    // Share Button
+                    // Share Button with Counter
                     GestureDetector(
-                      onTap: _shareNews,
+                      onTap: () {
+                        String cleanContent = _cleanText(widget.fullContent);
+                        String shareText = '${widget.title}\n\n$cleanContent';
+                        
+                        if (widget.sourceUrl != null && widget.sourceUrl!.isNotEmpty) {
+                          shareText += '\n\nRead more at: ${widget.sourceUrl}';
+                        }
+                        
+                        shareText += '\n\nShared via First Report App';
+                        
+                        Share.share(shareText);
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -277,7 +388,7 @@ class _NewsCardState extends State<NewsCard> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Share',
+                              sharesCount > 0 ? '$sharesCount' : 'Share',
                               style: FontUtils.regular(
                                 size: 12,
                                 color: textSecondary,
@@ -302,6 +413,8 @@ class _NewsCardState extends State<NewsCard> {
                             'fullContent': widget.fullContent,
                             'author': widget.author,
                             'timeAgo': widget.timeAgo,
+                            'publishedAt': widget.publishedAt.toIso8601String(),
+                            'sourceUrl': widget.sourceUrl,
                           });
                           if (widget.onSave != null) {
                             widget.onSave!();
@@ -354,34 +467,6 @@ class _NewsCardState extends State<NewsCard> {
                         ),
                       ),
                     ),
-                    // Read More Button (no gradient)
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          isExpanded = !isExpanded;
-                        });
-                        if (widget.onReadMore != null) {
-                          widget.onReadMore!();
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: chipBackground,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          isExpanded ? 'Read Less' : 'Read More',
-                          style: FontUtils.regular(
-                            size: 12,
-                            color: textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ],
@@ -392,4 +477,5 @@ class _NewsCardState extends State<NewsCard> {
     );
   }
 }
+
 

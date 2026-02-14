@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/services/language_service.dart';
+import 'package:firstreport/models/language_api_model.dart';
+import 'package:firstreport/utils/language_preference.dart';
 
-class TermsConditionsScreen extends StatelessWidget {
+class TermsConditionsScreen extends StatefulWidget {
   const TermsConditionsScreen({super.key});
+
+  @override
+  State<TermsConditionsScreen> createState() => _TermsConditionsScreenState();
+}
+
+class _TermsConditionsScreenState extends State<TermsConditionsScreen> {
+  Translations? _translations;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTranslations();
+  }
+
+  Future<void> _loadTranslations() async {
+    final languageCode = await LanguagePreference.getLanguageCode() ?? 'en';
+    final response = await LanguageService.getTranslations(languageCode);
+    if (mounted) {
+      setState(() {
+        _translations = response.translations;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,16 +48,29 @@ class TermsConditionsScreen extends StatelessWidget {
         ? AppColors.darkTextSecondary
         : AppColors.textLightGrey;
 
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: background,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final termsTitle = _translations?.termsConditions ?? 'Terms & Conditions';
+
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
         title: Text(
-          'Terms & Conditions',
+          termsTitle,
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         backgroundColor: cardColor,
         iconTheme: IconThemeData(color: textPrimary),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -41,8 +82,8 @@ class TermsConditionsScreen extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: isDark
-                    ? Colors.black.withValues(alpha: 0.35)
-                    : Colors.black.withValues(alpha: 0.05),
+                    ? Colors.black.withOpacity(0.35)
+                    : Colors.black.withOpacity(0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -52,60 +93,58 @@ class TermsConditionsScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome to First Report',
+                'Acceptance of Terms',
                 style: FontUtils.bold(size: 18, color: textPrimary),
               ),
               const SizedBox(height: 12),
               Text(
-                'These Terms & Conditions govern your use of the First Report application. '
-                'By accessing or using the app, you agree to be bound by these terms. '
-                'Please read them carefully before proceeding.',
+                'By using First Report, you agree to these Terms & Conditions. If you do not agree, please discontinue use of the application.',
                 style: FontUtils.regular(size: 14, color: textSecondary),
               ),
               const SizedBox(height: 20),
               _buildSection(
-                title: '1. Acceptance of Terms',
+                title: 'Use of Content',
                 body:
-                    'Your access to and use of First Report is conditioned on your acceptance of and '
-                    'compliance with these terms. If you disagree with any part, you may not access the service.',
+                    'All news content, images, and brand assets are the property of First Report or its content providers. '
+                    'You may view, share, and save content for personal, non-commercial use only.',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),
               _buildSection(
-                title: '2. Use of Content',
+                title: 'User Conduct',
                 body:
-                    'The news articles and media in First Report are provided for informational purposes only. '
-                    'You agree not to copy, distribute, or exploit any part of the content without permission.',
+                    'Users are prohibited from using the app for any illegal activities, '
+                    'harassment, or attempts to disrupt service. Misuse may result in account termination.',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),
               _buildSection(
-                title: '3. User Accounts',
+                title: 'Data Accuracy',
                 body:
-                    'When you create an account, you must provide accurate information. '
-                    'It is your responsibility to safeguard your password and any activities under your account.',
+                    'While we strive for accuracy, First Report does not guarantee the absolute correctness of all news items. '
+                    'Content is provided for informational purposes only.',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),
               _buildSection(
-                title: '4. Privacy',
+                title: 'Intellectual Property',
                 body:
-                    'Please review our Privacy Policy to understand how we collect and use your personal data. '
-                    'By using the service, you consent to the collection and use of information as described.',
+                    'The First Report name, logo, and app design are protected under intellectual property laws. '
+                    'Unauthorized reproduction or redistribution is strictly prohibited.',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),
               _buildSection(
-                title: '5. Changes to Terms',
+                title: 'Limitation of Liability',
                 body:
-                    'We may revise these terms from time to time. The revised version will be effective at the time '
-                    'it is posted. Continued use of the app constitutes acceptance of any modifications.',
+                    'First Report is not liable for any direct or indirect damages arising from the use of the application '
+                    'or reliance on its content.',
                 color: textPrimary,
                 subtitleColor: textSecondary,
               ),
               const SizedBox(height: 12),
               Text(
-                'If you have any questions about these Terms & Conditions, please reach out to support@firstreport.app.',
+                'Terms are subject to change. Continued use after updates signifies acceptance of the new terms.',
                 style: FontUtils.regular(size: 14, color: textSecondary),
               ),
             ],

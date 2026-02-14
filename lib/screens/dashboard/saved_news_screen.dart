@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/utils/saved_news.dart';
-import 'package:newsapp/widgets/news_card.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/utils/saved_news.dart';
+import 'package:firstreport/widgets/news_card.dart';
 
 class SavedNewsScreen extends StatefulWidget {
   const SavedNewsScreen({super.key});
@@ -78,6 +78,9 @@ class _SavedNewsScreenState extends State<SavedNewsScreen> {
                             news['fullContent'] as String? ?? 'No details',
                         author: news['author'] as String? ?? 'Unknown',
                         timeAgo: news['timeAgo'] as String? ?? '',
+                        publishedAt: news['publishedAt'] != null
+                            ? DateTime.parse(news['publishedAt'] as String)
+                            : DateTime.now(),
                         onSaveToggle: (isSaved) {
                           if (!isSaved) {
                             _loadSavedNews();

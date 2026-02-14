@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/utils/language_preference.dart';
-import 'package:newsapp/utils/theme_preference.dart';
-import 'package:newsapp/utils/user_registration.dart';
-import 'package:newsapp/screens/auth/language_selection_new.dart';
-import 'package:newsapp/screens/dashboard/profile_details.dart';
-import 'package:newsapp/screens/settings/privacy_policy.dart';
-import 'package:newsapp/screens/settings/terms_conditions.dart';
-import 'package:newsapp/screens/settings/notification_settings.dart';
-import 'package:newsapp/screens/dashboard/saved_news_screen.dart';
-import 'package:newsapp/l10n/app_localizations.dart';
-import 'package:newsapp/main.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/utils/language_preference.dart';
+import 'package:firstreport/utils/theme_preference.dart';
+import 'package:firstreport/utils/user_registration.dart';
+import 'package:firstreport/screens/auth/language_selection.dart';
+import 'package:firstreport/screens/profie/profile_details.dart';
+import 'package:firstreport/screens/settings/privacy_policy.dart';
+import 'package:firstreport/screens/settings/terms_conditions.dart';
+import 'package:firstreport/screens/settings/notification_settings.dart';
+import 'package:firstreport/services/language_service.dart';
+import 'package:firstreport/models/language_api_model.dart';
+import 'package:firstreport/screens/dashboard/saved_news_screen.dart';
+import 'package:firstreport/main.dart';
+
+import 'package:firstreport/services/auth_service.dart';
+import 'package:firstreport/models/auth_model.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -24,6 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String? currentLanguage;
   bool _darkMode = false;
   Map<String, String?> userDetails = {};
+  UserData? _profileData;
 
   @override
   void initState() {
@@ -42,48 +47,71 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Translations? _translations;
+
   Future<void> _loadLanguage() async {
-    final languageCode = await LanguagePreference.getLanguageCode();
-    final localizations = AppLocalizations(Locale(languageCode ?? 'en', 'US'));
     final languageName = await LanguagePreference.getLanguageName();
+    final languageCode = await LanguagePreference.getLanguageCode() ?? 'en';
+    
+    final response = await LanguageService.getTranslations(languageCode);
+    
     if (mounted) {
       setState(() {
-        // Get localized language name
-        if (languageName != null) {
-          final langMap = LanguagePreference.languages[languageName];
-          if (langMap != null) {
-            currentLanguage = localizations.getLanguageName(langMap['code']!);
-          } else {
-            currentLanguage = languageName;
-          }
-        } else {
-          currentLanguage = localizations.getLanguageName(languageCode ?? 'en');
-        }
+        currentLanguage = languageName ?? 'English';
+        _translations = response.translations;
       });
     }
   }
 
   Future<void> _loadUserDetails() async {
+    // Try to get details from API first
+    final token = await UserRegistration.getToken();
+    if (token != null && token.isNotEmpty) {
+      final profileResponse = await AuthService.getProfile(token);
+      if (profileResponse.success && profileResponse.user != null) {
+        if (mounted) {
+          setState(() {
+            _profileData = profileResponse.user;
+            userDetails = {
+              'fullName': _profileData!.name,
+              'email': _profileData!.email,
+              'phone': _profileData!.phone,
+              'location': _profileData!.location,
+            };
+          });
+        }
+        // Sync local storage with API data
+        await UserRegistration.saveRegistration(
+          name: _profileData!.name,
+          email: _profileData!.email,
+          phone: _profileData!.phone,
+          token: token,
+        );
+        return;
+      }
+    }
+
+    // Fallback to local storage
     final details = await UserRegistration.getUserDetails();
-    setState(() {
-      userDetails = details;
-    });
+    if (mounted) {
+      setState(() {
+        userDetails = details;
+      });
+    }
   }
 
   Future<void> _handleLanguageTap() async {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const LanguageSelectionScreenNew(fromSettings: true),
+        builder: (_) => const LanguageSelection(fromSettings: true),
       ),
     );
 
     if (mounted && result == true) {
       _loadLanguage();
-      final languageCode = await LanguagePreference.getLanguageCode();
-      final countryCode = await LanguagePreference.getCountryCode();
-      MyApp.instance?.setLocale(
-        Locale(languageCode ?? 'en', countryCode ?? 'US'),
-      );
+      // Language is already updated by LanguageProvider in language_selection.dart
+      // Just reload the translations for this screen
+      setState(() {});
     }
   }
 
@@ -235,7 +263,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark
         ? AppColors.darkBackground
@@ -248,18 +275,15 @@ class _SettingsPageState extends State<SettingsPage> {
         ? AppColors.darkTextSecondary
         : AppColors.textLightGrey;
 
-    final languageLabel = localizations?.language ?? 'Language';
-    final profileLabel = localizations?.profileDetails ?? 'Profile Details';
-    final manageProfile =
-        localizations?.manageYourProfile ?? 'Manage your profile';
-    final darkModeLabel = localizations?.darkMode ?? 'Dark Mode';
-    final switchToDark =
-        localizations?.switchToDarkTheme ?? 'Switch to dark theme';
-    final privacyLabel = localizations?.privacyPolicy ?? 'Privacy Policy';
-    final readPrivacy =
-        localizations?.readOurPrivacyPolicy ?? 'Read our privacy policy';
-    final settingsTitle = localizations?.settings ?? 'Settings';
-    final madeWithLove = localizations?.madeWithLove ?? 'Made with ❤️ in India';
+    final languageLabel = _translations?.language ?? 'Language';
+    final profileLabel = _translations?.profileDetails ?? 'Profile Details';
+    final manageProfile = _translations?.account ?? 'Manage your profile';
+    final darkModeLabel = _translations?.darkMode ?? 'Dark Mode';
+    final switchToDark = _translations?.general ?? 'Switch to dark theme';
+    final privacyLabel = _translations?.privacyPolicy ?? 'Privacy Policy';
+    final readPrivacy = _translations?.support ?? 'Read our privacy policy';
+    final settingsTitle = _translations?.settings ?? 'Settings';
+    const madeWithLove = 'Made with ❤️ in India';
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -291,20 +315,14 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24),
             _buildSection(
               context: context,
-              title: 'General',
+              title: _translations?.general ?? 'General',
               children: [
                 _buildSettingTile(
                   icon: Icons.language,
                   title: languageLabel,
-                  subtitle:
-                      currentLanguage ??
-                      localizations?.getLanguageName('en') ??
-                      'English',
+                  subtitle: currentLanguage ?? 'English',
                   onTap: _handleLanguageTap,
-                  trailingText:
-                      currentLanguage ??
-                      localizations?.getLanguageName('en') ??
-                      'English',
+                  trailingText: currentLanguage ?? 'English',
                 ),
                 _buildSettingTile(
                   icon: Icons.dark_mode,
@@ -322,7 +340,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             _buildSection(
               context: context,
-              title: 'Account',
+              title: _translations?.account ?? 'Account',
               children: [
                 _buildSettingTile(
                   icon: Icons.person,
@@ -332,13 +350,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 _buildSettingTile(
                   icon: Icons.notifications,
-                  title: localizations?.notifications ?? 'Notifications',
+                  title: _translations?.notifications ?? 'Notifications',
                   subtitle: 'Review your unread alerts',
                   onTap: _handleNotificationsTap,
                 ),
                 _buildSettingTile(
                   icon: Icons.bookmark_outline,
-                  title: 'Saved Ones',
+                  title: _translations?.savedOnes ?? 'Saved Ones',
                   subtitle: 'View and manage saved stories',
                   onTap: _handleSavedOnesTap,
                 ),
@@ -346,7 +364,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             _buildSection(
               context: context,
-              title: 'Support',
+              title: _translations?.support ?? 'Support',
               children: [
                 _buildSettingTile(
                   icon: Icons.privacy_tip,
@@ -356,13 +374,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 _buildSettingTile(
                   icon: Icons.article_outlined,
-                  title: 'Terms & Conditions',
+                  title: _translations?.termsConditions ?? 'Terms & Conditions',
                   subtitle: 'Understand our usage policy',
                   onTap: _handleTermsTap,
                 ),
                 _buildSettingTile(
                   icon: Icons.support_agent,
-                  title: 'Contact Support',
+                  title: _translations?.contactSupport ?? 'Contact Support',
                   subtitle: 'We are happy to help',
                   onTap: _handleContactSupportTap,
                 ),
@@ -454,13 +472,19 @@ class _SettingsPageState extends State<SettingsPage> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildInfoChip(
-                icon: Icons.check_circle_outline,
-                label: 'Verified Reader',
-              ),
+              if (_profileData?.isVerified ?? false)
+                _buildInfoChip(
+                  icon: Icons.check_circle,
+                  label: _translations?.verifiedReader ?? 'Verified Reader',
+                )
+              else
+                _buildInfoChip(
+                  icon: Icons.info_outline,
+                  label: 'General Reader',
+                ),
               _buildInfoChip(
                 icon: Icons.auto_awesome,
-                label: 'Personalised Feed',
+                label: _translations?.personalizedFeed ?? 'Personalised Feed',
               ),
             ],
           ),

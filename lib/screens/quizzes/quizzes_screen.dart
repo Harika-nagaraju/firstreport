@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:newsapp/utils/appcolors.dart';
-import 'package:newsapp/utils/fontutils.dart';
-import 'package:newsapp/widgets/quiz_card.dart';
-import 'package:newsapp/widgets/category_chip.dart';
-import 'package:newsapp/screens/quizzes/quiz_play_screen.dart';
+import 'package:firstreport/utils/appcolors.dart';
+import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/widgets/quiz_card.dart';
+import 'package:firstreport/widgets/category_chip.dart';
+import 'package:firstreport/screens/quizzes/quiz_play_screen.dart';
 
 class QuizzesScreen extends StatefulWidget {
-  const QuizzesScreen({super.key});
+  final VoidCallback? onBack;
+
+  const QuizzesScreen({super.key, this.onBack});
 
   @override
   State<QuizzesScreen> createState() => _QuizzesScreenState();
@@ -220,7 +222,13 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                 children: [
                   // Back Button
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
+                    onTap: () {
+                      if (widget.onBack != null) {
+                        widget.onBack!();
+                      } else {
+                        Navigator.of(context).pop();
+                      }
+                    },
                     child: Icon(
                       Icons.arrow_back,
                       color: textPrimary,
