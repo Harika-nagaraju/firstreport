@@ -69,6 +69,12 @@ class Translations {
   final String currentAffairs;
   final String health;
   final String tech;
+  final String world;
+  final String politics;
+  final String business;
+  final String technology;
+  final String sports;
+  final String entertainment;
 
   // Settings
   final String general;
@@ -146,6 +152,12 @@ class Translations {
     required this.memberSince,
     required this.verifiedReader,
     required this.personalizedFeed,
+    required this.world,
+    required this.politics,
+    required this.business,
+    required this.technology,
+    required this.sports,
+    required this.entertainment,
   });
 
   factory Translations.fromJson(Map<String, dynamic> json) {
@@ -209,6 +221,12 @@ class Translations {
       memberSince: json['member_since'] ?? 'Member since',
       verifiedReader: json['verified_reader'] ?? 'Verified Reader',
       personalizedFeed: json['personalized_feed'] ?? 'Personalized Feed',
+      world: json['world'] ?? 'World',
+      politics: json['politics'] ?? 'Politics',
+      business: json['business'] ?? 'Business',
+      technology: json['technology'] ?? 'Technology',
+      sports: json['sports'] ?? 'Sports',
+      entertainment: json['entertainment'] ?? 'Entertainment',
     );
   }
 }

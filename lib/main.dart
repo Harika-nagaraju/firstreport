@@ -11,6 +11,8 @@ import 'package:firstreport/l10n/app_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import 'package:firstreport/providers/notification_provider.dart';
+
 // Global key to access app state
 GlobalKey<MyAppState>? appStateKey;
 
@@ -22,8 +24,11 @@ void main() async {
   
   appStateKey = GlobalKey<MyAppState>();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LanguageProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+      ],
       child: MyApp(key: appStateKey),
     ),
   );

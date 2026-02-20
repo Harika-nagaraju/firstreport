@@ -27,7 +27,6 @@ class PostNews extends StatefulWidget {
 class _PostNewsState extends State<PostNews> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _urlController = TextEditingController();
   XFile? _selectedMedia;
   Uint8List? _selectedMediaBytes;
   final ImagePicker _picker = ImagePicker();
@@ -62,7 +61,6 @@ class _PostNewsState extends State<PostNews> {
       _editingPostId = initial.id;
       _titleController.text = initial.title;
       _descriptionController.text = initial.description;
-      _urlController.text = initial.url ?? '';
       _selectedCategory = initial.category;
     }
   }
@@ -82,7 +80,6 @@ class _PostNewsState extends State<PostNews> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _urlController.dispose();
     super.dispose();
   }
 
@@ -212,7 +209,6 @@ class _PostNewsState extends State<PostNews> {
         // Clear news fields after submission
         _titleController.clear();
         _descriptionController.clear();
-        _urlController.clear();
         setState(() {
           _selectedMedia = null;
           _selectedMediaBytes = null;
@@ -531,47 +527,7 @@ class _PostNewsState extends State<PostNews> {
                 ),
               ),
               const SizedBox(height: 24),
-                        // URL Section (Optional)
-                        Text(
-                          'URL (Optional)',
-                          style: FontUtils.bold(
-                            size: 16,
-                            color: primaryText,
-                          ),
-                        ),
-              const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: inputBackground,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: borderColor,
-                              width: 1,
-                            ),
-                          ),
-                child: TextField(
-                  controller: _urlController,
-                  keyboardType: TextInputType.url,
-                  decoration: InputDecoration(
-                    hintText: 'Enter news URL (optional)...',
-                            hintStyle: FontUtils.regular(
-                              size: 14,
-                              color: secondaryText,
-                            ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                          style: FontUtils.regular(
-                            size: 14,
-                            color: primaryText,
-                          ),
-                  maxLines: 1,
-                ),
-              ),
-              const SizedBox(height: 24),
+                        const SizedBox(height: 24),
               // Upload Media Section
               Text(
                 'Upload Media',

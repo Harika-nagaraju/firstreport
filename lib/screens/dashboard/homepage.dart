@@ -9,6 +9,8 @@ import 'package:firstreport/utils/language_preference.dart';
 import 'package:firstreport/widgets/news_card.dart';
 import 'package:firstreport/widgets/category_chip.dart';
 import 'package:firstreport/screens/notifications/notifications_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:firstreport/providers/notification_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,20 +21,22 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final List<String> _categoryKeys = [
-    'all',
     'previous',
+    'all',
     'india',
-    'international',
+    'world',
     'current_affairs',
-    'health',
-    'tech',
+    'politics',
+    'business',
+    'technology',
+    'sports',
+    'entertainment',
   ];
   String selectedCategoryKey = 'all';
   String currentLanguageCode = 'en';
   String? currentLanguage;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  bool _hasNotifications = true;
   bool _isLoading = true;
   List<NewsModel> _allNews = [];
   String _errorMessage = '';
@@ -90,6 +94,13 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _loadLanguage();
     _fetchNewsData();
+    _fetchUnreadCount();
+  }
+
+  Future<void> _fetchUnreadCount() async {
+    if (mounted) {
+      context.read<NotificationProvider>().updateUnreadCount();
+    }
   }
 
   Future<void> _fetchNewsData() async {
@@ -98,7 +109,7 @@ class _HomePageState extends State<HomePage> {
       _errorMessage = '';
     });
     try {
-      final news = await NewsService.getAllNews(category: selectedCategoryKey);
+      final news = await NewsService.getAllNews(tab: selectedCategoryKey);
       if (mounted) {
         setState(() {
           _allNews = news;
@@ -162,7 +173,7 @@ class _HomePageState extends State<HomePage> {
       final query = _searchController.text.toLowerCase();
       filtered = filtered.where((news) => 
         news.title.toLowerCase().contains(query) || 
-        (news.description?.toLowerCase().contains(query) ?? false)
+        news.summary.toLowerCase().contains(query)
       ).toList();
     }
 
@@ -172,17 +183,32 @@ class _HomePageState extends State<HomePage> {
   String _getCategoryLabel(String key) {
     if (_translations != null) {
       switch (key) {
-        case 'all': return _translations!.all ?? 'All';
+        case 'all': return _translations!.all;
         case 'previous': return 'Previous';
         case 'india': return _translations!.india;
-        case 'international': return _translations!.international;
+        case 'world': return _translations!.world;
         case 'current_affairs': return _translations!.currentAffairs;
-        case 'health': return _translations!.health;
-        case 'tech': return _translations!.tech;
+        case 'politics': return _translations!.politics;
+        case 'business': return _translations!.business;
+        case 'technology': return _translations!.technology;
+        case 'sports': return _translations!.sports;
+        case 'entertainment': return _translations!.entertainment;
       }
     }
-    final labels = _categoryLabels[currentLanguageCode] ?? _categoryLabels['en']!;
-    return labels[key] ?? _categoryLabels['en']![key] ?? key;
+    // Fallback labels
+    switch (key) {
+      case 'all': return 'All';
+      case 'previous': return 'Previous';
+      case 'india': return 'India';
+      case 'world': return 'World';
+      case 'current_affairs': return 'Current Affairs';
+      case 'politics': return 'Politics';
+      case 'business': return 'Business';
+      case 'technology': return 'Technology';
+      case 'sports': return 'Sports';
+      case 'entertainment': return 'Entertainment';
+      default: return key;
+    }
   }
 
   String _getLanguageNameFromCode(String code) {
@@ -194,13 +220,6 @@ class _HomePageState extends State<HomePage> {
     return 'English';
   }
 
-  String _getTimeAgo(DateTime dateTime) {
-    final difference = DateTime.now().difference(dateTime);
-    if (difference.inDays > 0) return '${difference.inDays}d ago';
-    if (difference.inHours > 0) return '${difference.inHours}h ago';
-    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
-    return 'Just now';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -280,45 +299,60 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const NotificationsScreen(),
+                      const SizedBox(width: 8),
+                      Consumer<NotificationProvider>(
+                        builder: (context, notificationProvider, child) {
+                          final count = notificationProvider.unreadCount;
+                          return GestureDetector(
+                            onTap: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
+                                ),
+                              );
+                              // Count will be updated inside NotificationsScreen or when returning
+                              notificationProvider.updateUnreadCount();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Icon(
+                                    Icons.notifications_outlined,
+                                    size: 24,
+                                    color: textPrimary,
+                                  ),
+                                  if (count > 0)
+                                    Positioned(
+                                      right: -4,
+                                      top: -4,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.redAccent,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 16,
+                                          minHeight: 16,
+                                        ),
+                                        child: Text(
+                                          count > 9 ? '9+' : '$count',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           );
-                          if (mounted) {
-                            setState(() {
-                              _hasNotifications = false;
-                            });
-                          }
                         },
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Icon(
-                                Icons.notifications_outlined,
-                                size: 24,
-                                color: textPrimary,
-                              ),
-                              if (_hasNotifications)
-                                Positioned(
-                                  right: -2,
-                                  top: -2,
-                                  child: Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.redAccent,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
                       ),
                       const SizedBox(width: 4),
                     ],
@@ -435,14 +469,12 @@ class _HomePageState extends State<HomePage> {
                     itemBuilder: (context, index) {
                       final news = displayNews[index];
                       return NewsCard(
-                        imageUrl: news.image ?? '', // Removed hardcoded Unsplash link
+                        imageUrl: news.imageUrl,
                         title: news.title,
-                        description: news.description ?? news.content ?? '',
-                        fullContent: news.content ?? news.description ?? '',
-                        author: news.category?.toUpperCase() ?? 'NEWS', // Better author/tag display
-                        timeAgo: _getTimeAgo(news.publishedAt),
+                        description: news.summary,
+                        fullContent: news.fullContent,
+                        author: news.author,
                         publishedAt: news.publishedAt,
-                        sourceUrl: news.sourceUrl,
                         initialLikes: news.likes,
                         initialShares: news.shares,
                         onLike: () => NewsService.likeNews(news.id),

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/fontutils.dart';
+import 'package:firstreport/services/notification_service.dart';
+import 'package:firstreport/models/notification_model.dart';
+import 'package:firstreport/config/api_config.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:firstreport/providers/notification_provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -10,75 +16,49 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final List<Map<String, dynamic>> _notifications = [
-    {
-      'id': 'notif-1',
-      'title': 'Morning briefing ready',
-      'summary': 'Catch up on the headlines tailored to your interests.',
-      'time': 'Just now',
-      'isRead': false,
-      'article': {
-        'title': 'Morning Brief: Top Stories for Today',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=960',
-        'content':
-            'Stay ahead with the biggest developments this morning. From policy changes to market swings, we have curated the top five stories you need to know before you start your day. Tap any headline inside the brief to read the full coverage.',
-      },
-    },
-    {
-      'id': 'notif-2',
-      'title': 'Quiz challenge live',
-      'summary': 'Test your knowledge in today\'s current affairs quiz.',
-      'time': '20 min ago',
-      'isRead': false,
-      'article': {
-        'title': 'Today\'s Current Affairs Quiz',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=960',
-        'content':
-            'Five quick questions on global headlines, economics, and science. Earn streak points and compare scores with your friends. Ready to take the challenge?',
-      },
-    },
-    {
-      'id': 'notif-3',
-      'title': 'Saved story updated',
-      'summary': 'A story you saved has a new follow-up article.',
-      'time': '1 hr ago',
-      'isRead': false,
-      'article': {
-        'title': 'Infrastructure Overhaul: What\'s New',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1501696461415-6bd6660c6741?w=960',
-        'content':
-            'The metro expansion project you bookmarked now has updated timelines and budget allocations. Explore the latest milestones and how commuters will benefit.',
-      },
-    },
-    {
-      'id': 'notif-4',
-      'title': 'Welcome to First Report',
-      'summary': 'Let’s personalise your feed by picking favourite categories.',
-      'time': 'Yesterday',
-      'isRead': true,
-      'article': {
-        'title': 'Personalise Your News Feed',
-        'imageUrl':
-            'https://images.unsplash.com/photo-1517638851339-4aa32003c11a?w=960',
-        'content':
-            'Follow topics such as Economy, Space, Education, and Culture to get a curated stream of updates. You can change your preferences anytime from Settings.',
-      },
-    },
-  ];
+  List<NotificationModel> _notifications = [];
+  bool _isLoading = true;
 
-  void _markAllRead() {
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+  }
+
+  Future<void> _fetchNotifications() async {
     setState(() {
-      for (final notification in _notifications) {
-        notification['isRead'] = true;
-      }
+      _isLoading = true;
     });
+    try {
+      final notifications = await NotificationService.getNotifications();
+      setState(() {
+        _notifications = notifications;
+        _isLoading = false;
+      });
+      // Also update the provider count while we're at it
+      if (mounted) {
+        final unreadCount = _notifications.where((n) => !n.isRead).length;
+        context.read<NotificationProvider>().setCount(unreadCount);
+      }
+    } catch (e) {
+      debugPrint('Error fetching notifications: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _markAllRead() async {
+    // This might need a backend endpoint if available, but for now we can do it locally or per-id
+    // If there's no bulk mark-as-read, we can iterate
+    for (var notif in _notifications.where((n) => !n.isRead)) {
+      await NotificationService.markAsRead(notif.id);
+    }
+    _fetchNotifications();
   }
 
   void _removeNotification(int index) {
-    if (index < 0 || index >= _notifications.length) return;
+    // Backend doesn't seem to have a delete endpoint in the prompt, but we can do it locally
     setState(() {
       _notifications.removeAt(index);
     });
@@ -86,18 +66,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _openNotification(int index) async {
     final notification = _notifications[index];
-    setState(() {
-      notification['isRead'] = true;
-    });
+    
+    if (!notification.isRead) {
+      final success = await NotificationService.markAsRead(notification.id);
+      if (success && mounted) {
+        context.read<NotificationProvider>().decrementCount();
+        setState(() {
+          // Update local state without re-fetching everything
+          _notifications[index] = NotificationModel(
+            id: notification.id,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type,
+            image: notification.image,
+            isRead: true,
+            readBy: [...notification.readBy],
+            createdAt: notification.createdAt,
+          );
+        });
+      }
+    }
 
-    final article = notification['article'] as Map<String, dynamic>?;
-    if (article == null) return;
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => NotificationDetailScreen(article: article),
-      ),
-    );
+    if (mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => NotificationDetailScreen(notification: _notifications[index]),
+        ),
+      );
+    }
   }
 
   @override
@@ -106,10 +102,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = theme.scaffoldBackgroundColor;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary =
-        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -122,7 +116,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         actions: [
-          if (_notifications.isNotEmpty)
+          if (_notifications.any((n) => !n.isRead))
             TextButton(
               onPressed: _markAllRead,
               child: Text(
@@ -132,36 +126,48 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
         ],
       ),
-      body: _notifications.isEmpty
-          ? _buildEmptyState(textPrimary, textSecondary, cardColor)
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              itemCount: _notifications.length,
-              itemBuilder: (context, index) {
-                final notification = _notifications[index];
-                final isUnread = !(notification['isRead'] as bool);
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _notifications.isEmpty
+              ? _buildEmptyState(textPrimary, textSecondary, cardColor)
+              : RefreshIndicator(
+                  onRefresh: _fetchNotifications,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    itemCount: _notifications.length,
+                    itemBuilder: (context, index) {
+                      final notification = _notifications[index];
+                      final isUnread = !notification.isRead;
 
-                return Dismissible(
-                  key: ValueKey(notification['id'] as String),
-                  direction: DismissDirection.horizontal,
-                  background: _buildSwipeBackground(Alignment.centerLeft),
-                  secondaryBackground:
-                      _buildSwipeBackground(Alignment.centerRight),
-                  onDismissed: (_) => _removeNotification(index),
-                  child: _NotificationTile(
-                    title: notification['title'] as String,
-                    summary: notification['summary'] as String,
-                    time: notification['time'] as String,
-                    isUnread: isUnread,
-                    cardColor: cardColor,
-                    textPrimary: textPrimary,
-                    textSecondary: textSecondary,
-                    onTap: () => _openNotification(index),
+                      return Dismissible(
+                        key: ValueKey(notification.id),
+                        direction: DismissDirection.horizontal,
+                        background: _buildSwipeBackground(Alignment.centerLeft),
+                        secondaryBackground: _buildSwipeBackground(Alignment.centerRight),
+                        onDismissed: (_) => _removeNotification(index),
+                        child: _NotificationTile(
+                          title: notification.title,
+                          summary: notification.message,
+                          time: _getTimeAgo(notification.createdAt),
+                          isUnread: isUnread,
+                          cardColor: cardColor,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                          onTap: () => _openNotification(index),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
+                ),
     );
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays > 0) return '${difference.inDays}d ago';
+    if (difference.inHours > 0) return '${difference.inHours}h ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
+    return 'Just now';
   }
 
   Widget _buildSwipeBackground(Alignment alignment) {
@@ -176,11 +182,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildEmptyState(
-    Color textPrimary,
-    Color textSecondary,
-    Color cardColor,
-  ) {
+  Widget _buildEmptyState(Color textPrimary, Color textSecondary, Color cardColor) {
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -312,25 +314,28 @@ class _NotificationTile extends StatelessWidget {
 }
 
 class NotificationDetailScreen extends StatelessWidget {
-  final Map<String, dynamic> article;
+  final NotificationModel notification;
 
-  const NotificationDetailScreen({super.key, required this.article});
+  const NotificationDetailScreen({super.key, required this.notification});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = theme.scaffoldBackgroundColor;
-    final textPrimary =
-        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+
+    String? imageUrl = notification.image;
+    if (imageUrl != null && !imageUrl.startsWith('http')) {
+      imageUrl = '${ApiConfig.baseUrl}$imageUrl';
+    }
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Text(
-          article['title'] as String? ?? 'Notification',
+          'Notification Detail',
           style: FontUtils.bold(size: 18, color: textPrimary),
         ),
         backgroundColor: isDark ? AppColors.darkCard : AppColors.white,
@@ -342,12 +347,12 @@ class NotificationDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (article['imageUrl'] != null)
+            if (imageUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  article['imageUrl'] as String,
-                  height: 200,
+                  imageUrl,
+                  height: 250,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
@@ -362,15 +367,26 @@ class NotificationDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
-              article['title'] as String,
+              notification.title,
               style: FontUtils.bold(size: 24, color: textPrimary),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16, color: textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  DateFormat('MMM dd, yyyy • hh:mm a').format(notification.createdAt),
+                  style: FontUtils.regular(size: 14, color: textSecondary),
+                ),
+              ],
+            ),
+            const Divider(height: 48),
             Text(
-              article['content'] as String,
-              style: FontUtils.regular(size: 16, color: textSecondary),
+              notification.message,
+              style: FontUtils.regular(size: 16, color: textPrimary, height: 1.5),
             ),
           ],
         ),

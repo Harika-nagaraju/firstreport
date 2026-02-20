@@ -96,6 +96,12 @@ class LanguageService {
         memberSince: "Member since",
         verifiedReader: "Verified Reader",
         personalizedFeed: "Personalized Feed",
+        world: "World",
+        politics: "Politics",
+        business: "Business",
+        technology: "Technology",
+        sports: "Sports",
+        entertainment: "Entertainment",
       ),
     );
   }

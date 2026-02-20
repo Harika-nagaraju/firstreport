@@ -108,6 +108,7 @@ class UserRegistration {
     await prefs.remove(_userPhoneKey);
     await prefs.remove(_userPasswordKey);
     await prefs.remove(_isVerifiedKey);
+    await prefs.remove(_tokenKey);
   }
 
   // Get all user details

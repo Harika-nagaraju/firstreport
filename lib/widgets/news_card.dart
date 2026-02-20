@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/fontutils.dart';
 import 'package:firstreport/utils/saved_news.dart';
@@ -12,9 +14,7 @@ class NewsCard extends StatefulWidget {
   final String description;
   final String fullContent; 
   final String author;
-  final String timeAgo;
   final DateTime publishedAt;
-  final String? sourceUrl;
   final int initialLikes;
   final int initialShares;
   final VoidCallback? onSave;
@@ -29,9 +29,7 @@ class NewsCard extends StatefulWidget {
     required this.description,
     required this.fullContent,
     required this.author,
-    required this.timeAgo,
     required this.publishedAt,
-    this.sourceUrl,
     this.initialLikes = 0,
     this.initialShares = 0,
     this.onSave,
@@ -109,13 +107,7 @@ class _NewsCardState extends State<NewsCard> {
 
   Future<void> _shareNews() async {
     String cleanContent = _cleanText(widget.fullContent);
-    String shareText = '${widget.title}\n\n$cleanContent';
-    
-    if (widget.sourceUrl != null && widget.sourceUrl!.isNotEmpty) {
-      shareText += '\n\nRead more at: ${widget.sourceUrl}';
-    }
-    
-    shareText += '\n\nShared via First Report App';
+    String shareText = '${widget.title}\n\n$cleanContent\n\nShared via First Report App';
     
     await Share.share(shareText);
     setState(() {
@@ -135,7 +127,6 @@ class _NewsCardState extends State<NewsCard> {
           content: widget.fullContent,
           author: widget.author,
           publishedAt: widget.publishedAt,
-          sourceUrl: widget.sourceUrl,
         ),
       ),
     );
@@ -150,6 +141,32 @@ class _NewsCardState extends State<NewsCard> {
   String _cleanText(String text) {
     // Removes the "[+227 chars]" or similar suffix often added by NewsAPI
     return text.replaceAll(RegExp(r'\[\+\d+ chars\]'), '').trim();
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return "Just now";
+    } else if (difference.inMinutes < 60) {
+      return "${difference.inMinutes}m ago";
+    } else if (difference.inHours < 24) {
+      return "${difference.inHours}h ago";
+    } else if (difference.inDays < 7) {
+      return "${difference.inDays}d ago";
+    } else {
+      return DateFormat('MMM dd, yyyy').format(dateTime);
+    }
+  }
+
+  String _safeDescription() {
+    if (widget.description.length < 100) {
+      return widget.fullContent.length > 200
+          ? widget.fullContent.substring(0, 200) + "..."
+          : widget.fullContent;
+    }
+    return widget.description;
   }
 
   @override
@@ -188,7 +205,7 @@ class _NewsCardState extends State<NewsCard> {
                 height: 200,
                 width: double.infinity,
                 color: chipBackground,
-                child: widget.imageUrl.isEmpty 
+                child: widget.imageUrl.trim().isEmpty || !widget.imageUrl.startsWith("http")
                   ? Center(
                       child: Image.asset(
                         'assets/images/app_icon.png',
@@ -197,31 +214,22 @@ class _NewsCardState extends State<NewsCard> {
                         opacity: const AlwaysStoppedAnimation(0.3), // Subtly branded
                       ),
                     )
-                  : Image.network(
-                      widget.imageUrl,
+                  : CachedNetworkImage(
+                      imageUrl: widget.imageUrl,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                            strokeWidth: 2,
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Center(
-                          child: Image.asset(
-                            'assets/images/app_icon.png',
-                            width: 120,
-                            height: 120,
-                            opacity: const AlwaysStoppedAnimation(0.3),
-                          ),
-                        );
-                      },
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Center(
+                        child: Image.asset(
+                          'assets/images/app_icon.png',
+                          width: 120,
+                          height: 120,
+                          opacity: const AlwaysStoppedAnimation(0.3),
+                        ),
+                      ),
                     ),
               ),
             ),
@@ -272,7 +280,7 @@ class _NewsCardState extends State<NewsCard> {
                       ? CrossFadeState.showSecond
                       : CrossFadeState.showFirst,
                   firstChild: Text(
-                    _cleanText(widget.description),
+                    _cleanText(_safeDescription()),
                     style: FontUtils.regular(
                       size: 14,
                       color: textSecondary,
@@ -293,7 +301,7 @@ class _NewsCardState extends State<NewsCard> {
                 Row(
                   children: [
                     Text(
-                      '${widget.author} • ${widget.timeAgo}',
+                      '${widget.author} • ${_getTimeAgo(widget.publishedAt)}',
                       style: FontUtils.regular(
                         size: 12,
                         color: textSecondary,
@@ -359,14 +367,7 @@ class _NewsCardState extends State<NewsCard> {
                     GestureDetector(
                       onTap: () {
                         String cleanContent = _cleanText(widget.fullContent);
-                        String shareText = '${widget.title}\n\n$cleanContent';
-                        
-                        if (widget.sourceUrl != null && widget.sourceUrl!.isNotEmpty) {
-                          shareText += '\n\nRead more at: ${widget.sourceUrl}';
-                        }
-                        
-                        shareText += '\n\nShared via First Report App';
-                        
+                        String shareText = '${widget.title}\n\n$cleanContent\n\nShared via First Report App';
                         Share.share(shareText);
                       },
                       child: Container(
@@ -412,9 +413,7 @@ class _NewsCardState extends State<NewsCard> {
                             'description': widget.description,
                             'fullContent': widget.fullContent,
                             'author': widget.author,
-                            'timeAgo': widget.timeAgo,
                             'publishedAt': widget.publishedAt.toIso8601String(),
-                            'sourceUrl': widget.sourceUrl,
                           });
                           if (widget.onSave != null) {
                             widget.onSave!();

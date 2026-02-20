@@ -12,6 +12,8 @@ import 'package:firstreport/screens/settings/notification_settings.dart';
 import 'package:firstreport/services/language_service.dart';
 import 'package:firstreport/models/language_api_model.dart';
 import 'package:firstreport/screens/dashboard/saved_news_screen.dart';
+import 'package:firstreport/screens/quizzes/quiz_history_screen.dart';
+import 'package:firstreport/screens/dashboard/dashboard.dart';
 import 'package:firstreport/main.dart';
 
 import 'package:firstreport/services/auth_service.dart';
@@ -157,6 +159,42 @@ class _SettingsPageState extends State<SettingsPage> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()));
+  }
+
+  void _handleLogout() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? AppColors.darkCard : AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Logout', style: FontUtils.bold(size: 18, color: textPrimary)),
+        content: Text('Are you sure you want to log out?', style: FontUtils.regular(size: 15, color: textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: FontUtils.bold(size: 14, color: textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              await UserRegistration.signOut();
+              if (mounted) {
+                Navigator.pop(context); // Close dialog
+                // Navigate to dashboard and clear stack (to refresh state)
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const Dashboard()),
+                  (route) => false,
+                );
+              }
+            },
+            child: Text('Logout', style: FontUtils.bold(size: 14, color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleContactSupportTap() {
@@ -359,6 +397,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: _translations?.savedOnes ?? 'Saved Ones',
                   subtitle: 'View and manage saved stories',
                   onTap: _handleSavedOnesTap,
+                ),
+                _buildSettingTile(
+                  icon: Icons.history,
+                  title: 'Quiz History',
+                  subtitle: 'View your past quiz achievements',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QuizHistoryScreen()),
+                    );
+                  },
+                ),
+                _buildSettingTile(
+                  icon: Icons.logout,
+                  title: 'Logout',
+                  subtitle: 'Sign out of your account',
+                  onTap: _handleLogout,
+                  showChevron: false,
                 ),
               ],
             ),

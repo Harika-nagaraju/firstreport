@@ -9,25 +9,13 @@ import '../config/api_config.dart';
 class NewsService {
   static String get _baseUrl => ApiConfig.baseUrl;
 
-  static Future<List<NewsModel>> getAllNews({String? category}) async {
+  static Future<List<NewsModel>> getAllNews({String? tab}) async {
     try {
+      // Base URL should always be unified
       String url = '$_baseUrl/api/unified';
-      List<String> params = [];
       
-      if (category == 'previous') {
-        url = '$_baseUrl/api/news/previous';
-      } else {
-        if (category != null && category != 'all') {
-          params.add('category=$category');
-        }
-      }
-
-      // Always sort by newest first
-      params.add('sortBy=publishedAt');
-      params.add('order=desc');
-      
-      if (params.isNotEmpty) {
-        url += '?${params.join('&')}';
+      if (tab != null && tab.isNotEmpty) {
+        url += '?tab=$tab';
       }
       
       debugPrint('Fetching news from: $url');
@@ -181,7 +169,6 @@ class NewsService {
     required String title,
     required String description,
     required String category,
-    String? sourceUrl,
     String? image,
   }) async {
     try {
@@ -197,7 +184,6 @@ class NewsService {
           'title': title,
           'description': description,
           'category': category,
-          'sourceUrl': sourceUrl,
           'image': image,
         }),
       ).timeout(const Duration(seconds: 30));

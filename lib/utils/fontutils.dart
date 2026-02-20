@@ -26,22 +26,33 @@ class FontUtils {
     );
   }
 
-  // Semi-bold example
+  // Semi-bold style
   static TextStyle semiBold({double size = 14, Color color = Colors.black, double? height}) {
     return TextStyle(
       fontFamily: _fontFamily,
-      fontWeight: FontWeight.bold,
+      fontWeight: FontWeight.w600,
       fontSize: size,
       color: color,
       height: height,
     );
   }
 
-  // italic example
+  // Medium style
+  static TextStyle medium({double size = 14, Color color = Colors.black, double? height}) {
+    return TextStyle(
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w500,
+      fontSize: size,
+      color: color,
+      height: height,
+    );
+  }
+
+  // italic style
   static TextStyle italic({double size = 14, Color color = Colors.black, double? height}) {
     return TextStyle(
       fontFamily: _fontFamily,
-      fontWeight: FontWeight.bold,
+      fontWeight: FontWeight.w400,
       fontSize: size,
       fontStyle: FontStyle.italic,
       color: color,
@@ -49,15 +60,14 @@ class FontUtils {
     );
   }
 
-  // light example
+  // light style
   static TextStyle light({double size = 14, Color color = Colors.black, double? height}) {
     return TextStyle(
       fontFamily: _fontFamily,
-      fontWeight: FontWeight.bold,
+      fontWeight: FontWeight.w300,
       fontSize: size,
       color: color,
       height: height,
     );
   }
-
 }

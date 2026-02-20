@@ -3,7 +3,6 @@ import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/fontutils.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class NewsDetailScreen extends StatelessWidget {
   final String imageUrl;
@@ -11,7 +10,6 @@ class NewsDetailScreen extends StatelessWidget {
   final String content;
   final String author;
   final DateTime publishedAt;
-  final String? sourceUrl;
 
   const NewsDetailScreen({
     super.key,
@@ -20,20 +18,7 @@ class NewsDetailScreen extends StatelessWidget {
     required this.content,
     required this.author,
     required this.publishedAt,
-    this.sourceUrl,
   });
-
-  Future<void> _launchURL(String? url) async {
-    if (url == null || url.isEmpty) return;
-    final Uri uri = Uri.parse(url);
-    try {
-      if (!await launchUrl(uri, mode: LaunchMode.inAppBrowserView)) {
-        debugPrint('Could not launch $url');
-      }
-    } catch (e) {
-      debugPrint('Error launching URL: $e');
-    }
-  }
 
   String _cleanText(String text) {
     return text.replaceAll(RegExp(r'\[\+\d+ chars\]'), '').trim();
@@ -71,14 +56,7 @@ class NewsDetailScreen extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   String cleanContent = _cleanText(content);
-                  String shareText = '$title\n\n$cleanContent';
-                  
-                  if (sourceUrl != null && sourceUrl!.isNotEmpty) {
-                    shareText += '\n\nRead more at: $sourceUrl';
-                  }
-                  
-                  shareText += '\n\nShared via First Report App';
-                  
+                  String shareText = '$title\n\n$cleanContent\n\nShared via First Report App';
                   Share.share(shareText);
                 },
                 child: Container(
@@ -186,57 +164,24 @@ class NewsDetailScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   
                   // Content
-                  Text(
-                    _cleanText(content),
-                    style: FontUtils.regular(size: 16, color: textPrimary, height: 1.6),
-                  ),
-                  
-                  // Read Full Article Primary Button
-                  if ((content.endsWith('...') || content.length < 300) && sourceUrl != null && sourceUrl!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 32),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: AppColors.buttonGradient,
-                              borderRadius: BorderRadius.circular(15),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.gradientStart.withOpacity(0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () => _launchURL(sourceUrl),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: content
+                        .split('\n\n')
+                        .map((paragraph) => Padding(
+                              padding: const EdgeInsets.only(bottom: 18),
                               child: Text(
-                                'Read Full Article on Website',
-                                style: FontUtils.bold(size: 16, color: Colors.white),
+                                paragraph.trim(),
+                                textAlign: TextAlign.justify,
+                                style: FontUtils.regular(
+                                  size: 17,
+                                  height: 1.8,
+                                  color: textPrimary,
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'The free news API provides a summary. Tap above to read the full story on the official website.',
-                            textAlign: TextAlign.center,
-                            style: FontUtils.regular(size: 12, color: textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  
-                  const SizedBox(height: 32),
+                            ))
+                        .toList(),
+                  ),
                   
                   const SizedBox(height: 32),
                   const SizedBox(height: 100), // Bottom padding
