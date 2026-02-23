@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firstreport/config/api_config.dart';
 import 'package:firstreport/utils/user_registration.dart';

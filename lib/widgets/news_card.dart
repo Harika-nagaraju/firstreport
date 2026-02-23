@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:intl/intl.dart';
 import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/fontutils.dart';
 import 'package:firstreport/utils/saved_news.dart';
@@ -105,16 +104,18 @@ class _NewsCardState extends State<NewsCard> {
     await flutterTts.speak(fullText);
   }
 
-  Future<void> _shareNews() async {
-    String cleanContent = _cleanText(widget.fullContent);
-    String shareText = '${widget.title}\n\n$cleanContent\n\nShared via First Report App';
-    
-    await Share.share(shareText);
-    setState(() {
-      sharesCount++;
-    });
-    if (widget.onShare != null) {
-      widget.onShare!();
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
     }
   }
 
@@ -143,27 +144,11 @@ class _NewsCardState extends State<NewsCard> {
     return text.replaceAll(RegExp(r'\[\+\d+ chars\]'), '').trim();
   }
 
-  String _getTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) {
-      return "Just now";
-    } else if (difference.inMinutes < 60) {
-      return "${difference.inMinutes}m ago";
-    } else if (difference.inHours < 24) {
-      return "${difference.inHours}h ago";
-    } else if (difference.inDays < 7) {
-      return "${difference.inDays}d ago";
-    } else {
-      return DateFormat('MMM dd, yyyy').format(dateTime);
-    }
-  }
-
+  
   String _safeDescription() {
     if (widget.description.length < 100) {
       return widget.fullContent.length > 200
-          ? widget.fullContent.substring(0, 200) + "..."
+          ? '${widget.fullContent.substring(0, 200)}...'
           : widget.fullContent;
     }
     return widget.description;
@@ -187,7 +172,7 @@ class _NewsCardState extends State<NewsCard> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.4 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -368,7 +353,12 @@ class _NewsCardState extends State<NewsCard> {
                       onTap: () {
                         String cleanContent = _cleanText(widget.fullContent);
                         String shareText = '${widget.title}\n\n$cleanContent\n\nShared via First Report App';
-                        Share.share(shareText);
+                        SharePlus.instance.share(
+                          ShareParams(
+                            subject: widget.title,
+                            text: '$cleanContent\n\nShared via First Report App',
+                          ),
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -432,7 +422,7 @@ class _NewsCardState extends State<NewsCard> {
                         ),
                         decoration: BoxDecoration(
                           color: isSaved
-                              ? AppColors.gradientStart.withOpacity(0.12)
+                              ? AppColors.gradientStart.withValues(alpha: 0.12)
                               : chipBackground,
                           borderRadius: BorderRadius.circular(20),
                           border: isSaved

@@ -4,7 +4,6 @@ import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/fontutils.dart';
 import 'package:firstreport/utils/language_preference.dart';
 import 'package:firstreport/screens/dashboard/dashboard.dart';
-import 'package:firstreport/main.dart';
 import 'package:firstreport/models/language_api_model.dart';
 import 'package:firstreport/services/language_service.dart';
 import 'package:firstreport/providers/language_provider.dart';
