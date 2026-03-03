@@ -8,6 +8,7 @@ class Quiz {
   final String description;
   final String category;
   final String difficulty;
+  final String? imageUrl;
   final String? status;
   final int? timerMinutes;
   final int? questionCount; // From /all endpoint (questions hidden)
@@ -21,6 +22,7 @@ class Quiz {
     required this.description,
     required this.category,
     required this.difficulty,
+    this.imageUrl,
     this.status,
     this.timerMinutes,
     this.questionCount,
@@ -36,9 +38,10 @@ class Quiz {
       description: json['description'] ?? '',
       category: json['category'] ?? 'general',
       difficulty: json['difficulty'] ?? 'medium',
+      imageUrl: json['imageUrl'] ?? json['image'],
       status: json['status'],
       timerMinutes: json['timerMinutes'],
-      questionCount: (json['questions'] as List?)?.length,
+      questionCount: json['questionCount'] ?? (json['questions'] as List?)?.length,
       questions: json['questions'] != null
           ? (json['questions'] as List)
               .map((i) => QuizQuestion.fromJson(i))
@@ -55,12 +58,14 @@ class QuizQuestion {
   final int questionNumber;
   final String questionText;
   final List<String> options;
+  final int? correctOptionIndex; // Added for immediate feedback UI
 
   QuizQuestion({
     required this.id,
     required this.questionNumber,
     required this.questionText,
     required this.options,
+    this.correctOptionIndex,
   });
 
   factory QuizQuestion.fromJson(Map<String, dynamic> json) {
@@ -69,6 +74,7 @@ class QuizQuestion {
       questionNumber: json['questionNumber'] ?? 0,
       questionText: json['questionText'] ?? '',
       options: List<String>.from(json['options'] ?? []),
+      correctOptionIndex: json['correctOptionIndex'] ?? json['answerIndex'],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/fontutils.dart';
@@ -9,6 +10,7 @@ class NewsDetailScreen extends StatelessWidget {
   final String title;
   final String content;
   final String author;
+  final String? authorImage;
   final DateTime publishedAt;
 
   const NewsDetailScreen({
@@ -17,6 +19,7 @@ class NewsDetailScreen extends StatelessWidget {
     required this.title,
     required this.content,
     required this.author,
+    this.authorImage,
     required this.publishedAt,
   });
 
@@ -85,10 +88,13 @@ class NewsDetailScreen extends StatelessWidget {
                             ),
                           ),
                         )
-                      : Image.network(
-                          imageUrl,
+                      : CachedNetworkImage(
+                          imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Center(
+                          placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          errorWidget: (context, url, error) => Center(
                             child: Opacity(
                               opacity: 0.5,
                               child: Image.asset(
@@ -127,17 +133,31 @@ class NewsDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category/Author Tag
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.gradientStart.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      author.toUpperCase(),
-                      style: FontUtils.bold(size: 12, color: AppColors.gradientStart),
-                    ),
+                  // NEW PREMIUM AUTHOR SECTION
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 22,
+                        backgroundImage: authorImage != null && authorImage!.isNotEmpty
+                            ? NetworkImage(authorImage!)
+                            : const AssetImage('assets/images/app_icon.png') as ImageProvider,
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            author,
+                            style: FontUtils.bold(size: 15, color: textPrimary),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('MMM dd, yyyy • hh:mm a').format(publishedAt),
+                            style: FontUtils.regular(size: 12, color: textSecondary),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   
@@ -148,17 +168,8 @@ class NewsDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   
-                  // Date and Time
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 16, color: textSecondary),
-                      const SizedBox(width: 6),
-                      Text(
-                        DateFormat('MMM dd, yyyy • hh:mm a').format(publishedAt),
-                        style: FontUtils.regular(size: 13, color: textSecondary),
-                      ),
-                    ],
-                  ),
+                  // REMOVAL: Old date row below is removed as it's now in the author block
+                  
                   const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 24),

@@ -173,8 +173,8 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                             itemCount: quizzes.length,
                             itemBuilder: (context, index) {
                               final quiz = quizzes[index];
-                              return QuizCard(
-                                imageUrl: quiz.newsId?['imageUrl'] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=900',
+                                return QuizCard(
+                                  imageUrl: quiz.imageUrl ?? quiz.newsId?['imageUrl'] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=900',
                                 title: quiz.title,
                                 difficulty: quiz.difficulty,
                                 questionCount: quiz.questionCount ?? 5,

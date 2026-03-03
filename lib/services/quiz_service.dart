@@ -50,10 +50,10 @@ class QuizService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          final List quizzesJson = data['quizzes'] ?? [];
-          debugPrint('QuizService: Fetched ${quizzesJson.length} quizzes');
-          return quizzesJson.map((json) => Quiz.fromJson(json)).toList();
+        // 'quizzes' is the key returned by the backend /all endpoint
+        final dataList = data['quizzes'] ?? data['data'] ?? [];
+        if (dataList is List) {
+          return dataList.map((json) => Quiz.fromJson(json)).toList();
         }
       }
       return [];
@@ -64,7 +64,7 @@ class QuizService {
   }
 
   // ─────────────────────────────────────────────
-  // GET /api/quiz/:id   →   Single quiz with questions (answers hidden)
+  // GET /api/quiz/:id   →   Single quiz with questions
   // ─────────────────────────────────────────────
   static Future<Quiz?> getQuizById(String quizId) async {
     try {
@@ -79,8 +79,9 @@ class QuizService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true && data['quiz'] != null) {
-          return Quiz.fromJson(data['quiz']);
+        final quizData = data['quiz'] ?? data['data'] ?? data;
+        if (quizData != null) {
+          return Quiz.fromJson(quizData);
         }
       }
       return null;
@@ -91,37 +92,61 @@ class QuizService {
   }
 
   // ─────────────────────────────────────────────
-  // POST /api/quiz/:id/submit
-  // Body: { "answers": [0, 2, 1, 3, 2] }
-  // Returns score, grade, and per-question feedback
+  // POST /api/quiz/submit
+  // Image 5 specifies /api/quiz/submit
   // ─────────────────────────────────────────────
   static Future<QuizSubmitResponse?> submitQuiz(
     String quizId,
     List<int> answers,
   ) async {
     try {
-      final uri = Uri.parse('$_base/api/quiz/$quizId/submit');
-      debugPrint('QuizService: POST $uri with ${answers.length} answers');
+      // Trying the /submit endpoint as per Image 5
+      final uri = Uri.parse('$_base/api/quiz/submit');
+      debugPrint('QuizService: POST $uri with quizId: $quizId');
 
       final response = await http
           .post(
             uri,
             headers: await _headers(),
-            body: jsonEncode({'answers': answers}),
+            body: jsonEncode({
+              'quizId': quizId, // Pass quizId in body if endpoint is generic
+              'answers': answers,
+            }),
           )
           .timeout(const Duration(seconds: 30));
 
       debugPrint('QuizService submitQuiz: ${response.statusCode}');
 
+      // If generic /submit fails (maybe it's 404), fallback to /:id/submit
+      if (response.statusCode == 404 || response.statusCode == 405) {
+         return _submitQuizLegacy(quizId, answers);
+      }
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          return QuizSubmitResponse.fromJson(data);
-        }
+        return QuizSubmitResponse.fromJson(data);
       }
       return null;
     } catch (e) {
-      debugPrint('QuizService submitQuiz error: $e');
+      debugPrint('QuizService submitQuiz error: $e. Falling back to ID route.');
+      return _submitQuizLegacy(quizId, answers);
+    }
+  }
+
+  static Future<QuizSubmitResponse?> _submitQuizLegacy(String quizId, List<int> answers) async {
+    try {
+      final uri = Uri.parse('$_base/api/quiz/$quizId/submit');
+      final response = await http.post(
+        uri,
+        headers: await _headers(),
+        body: jsonEncode({'answers': answers}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return QuizSubmitResponse.fromJson(data);
+      }
+      return null;
+    } catch (_) {
       return null;
     }
   }

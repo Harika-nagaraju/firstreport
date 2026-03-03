@@ -5,6 +5,7 @@ class NewsModel {
   final String fullContent;
   final String imageUrl;
   final String author;
+  final String? authorImage;
   final DateTime publishedAt;
   final List<String> likedBy;
   final int likes;
@@ -17,6 +18,7 @@ class NewsModel {
     required this.fullContent,
     required this.imageUrl,
     required this.author,
+    this.authorImage,
     required this.publishedAt,
     required this.likedBy,
     required this.likes,
@@ -31,6 +33,7 @@ class NewsModel {
       fullContent: json['fullContent'] ?? json['content'] ?? '',
       imageUrl: json['imageUrl'] ?? json['image'] ?? '',
       author: json['author'] ?? json['source'] ?? 'General',
+      authorImage: json['authorImage'] ?? json['author_image'],
       likedBy: List<String>.from(json['likedBy'] ?? []),
       likes: _toInt(json['likes']),
       publishedAt: DateTime.parse(json['publishedAt'] ?? DateTime.now().toIso8601String()),
@@ -53,6 +56,7 @@ class NewsModel {
       'fullContent': fullContent,
       'imageUrl': imageUrl,
       'author': author,
+      'authorImage': authorImage,
       'likedBy': likedBy,
       'likes': likes,
       'publishedAt': publishedAt.toIso8601String(),

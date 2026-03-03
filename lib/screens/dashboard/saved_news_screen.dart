@@ -77,6 +77,7 @@ class _SavedNewsScreenState extends State<SavedNewsScreen> {
                         fullContent:
                             news['fullContent'] as String? ?? 'No details',
                         author: news['author'] as String? ?? 'Unknown',
+                        authorImage: news['authorImage'] as String?,
                         publishedAt: news['publishedAt'] != null
                             ? DateTime.parse(news['publishedAt'] as String)
                             : DateTime.now(),

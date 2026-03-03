@@ -22,17 +22,18 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<String> _categoryKeys = [
     'previous',
-    'all',
     'india',
     'world',
-    'current_affairs',
+    'current-affairs',
     'politics',
     'business',
     'technology',
     'sports',
     'entertainment',
   ];
-  String selectedCategoryKey = 'all';
+  String selectedCategoryKey = 'india';
+  Map<String, List<NewsModel>> _cachedNews = {};
+  final ScrollController _scrollController = ScrollController();
   String currentLanguageCode = 'en';
   String? currentLanguage;
   final TextEditingController _searchController = TextEditingController();
@@ -104,12 +105,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchNewsData() async {
+    // Check Cache first for instant load
+    if (_cachedNews.containsKey(selectedCategoryKey)) {
+      setState(() {
+        _allNews = _cachedNews[selectedCategoryKey]!;
+        _isLoading = false;
+        _errorMessage = '';
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
+    
     try {
       final news = await NewsService.getAllNews(tab: selectedCategoryKey);
+      
+      // Store in memory cache
+      _cachedNews[selectedCategoryKey] = news;
+      
       if (mounted) {
         setState(() {
           _allNews = news;
@@ -141,6 +157,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -187,7 +204,7 @@ class _HomePageState extends State<HomePage> {
         case 'previous': return 'Previous';
         case 'india': return _translations!.india;
         case 'world': return _translations!.world;
-        case 'current_affairs': return _translations!.currentAffairs;
+        case 'current-affairs': return _translations!.currentAffairs;
         case 'politics': return _translations!.politics;
         case 'business': return _translations!.business;
         case 'technology': return _translations!.technology;
@@ -201,7 +218,7 @@ class _HomePageState extends State<HomePage> {
       case 'previous': return 'Previous';
       case 'india': return 'India';
       case 'world': return 'World';
-      case 'current_affairs': return 'Current Affairs';
+      case 'current-affairs': return 'Current Affairs';
       case 'politics': return 'Politics';
       case 'business': return 'Business';
       case 'technology': return 'Technology';
@@ -464,6 +481,7 @@ class _HomePageState extends State<HomePage> {
                 : displayNews.isEmpty
                 ? Center(child: Text(_translations?.noNewsFound ?? 'No news found', style: FontUtils.regular(color: textSecondary)))
                 : ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: displayNews.length,
                     itemBuilder: (context, index) {
@@ -474,6 +492,7 @@ class _HomePageState extends State<HomePage> {
                         description: news.summary,
                         fullContent: news.fullContent,
                         author: news.author,
+                        authorImage: news.authorImage,
                         publishedAt: news.publishedAt,
                         initialLikes: news.likes,
                         initialShares: news.shares,

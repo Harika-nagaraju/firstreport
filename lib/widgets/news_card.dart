@@ -13,6 +13,7 @@ class NewsCard extends StatefulWidget {
   final String description;
   final String fullContent; 
   final String author;
+  final String? authorImage;
   final DateTime publishedAt;
   final int initialLikes;
   final int initialShares;
@@ -28,6 +29,7 @@ class NewsCard extends StatefulWidget {
     required this.description,
     required this.fullContent,
     required this.author,
+    this.authorImage,
     required this.publishedAt,
     this.initialLikes = 0,
     this.initialShares = 0,
@@ -127,6 +129,7 @@ class _NewsCardState extends State<NewsCard> {
           title: widget.title,
           content: widget.fullContent,
           author: widget.author,
+          authorImage: widget.authorImage,
           publishedAt: widget.publishedAt,
         ),
       ),

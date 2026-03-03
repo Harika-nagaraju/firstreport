@@ -9,38 +9,29 @@ import '../config/api_config.dart';
 class NewsService {
   static String get _baseUrl => ApiConfig.baseUrl;
 
-  static Future<List<NewsModel>> getAllNews({String? tab}) async {
+  static final http.Client _client = http.Client();
+
+  static Future<List<NewsModel>> getAllNews({required String tab}) async {
     try {
-      // Base URL should always be unified
-      String url = '$_baseUrl/api/unified';
-      
-      if (tab != null && tab.isNotEmpty) {
-        url += '?tab=$tab';
-      }
+      // Correct API endpoint as per production requirements
+      final url = '$_baseUrl/api/news?tab=$tab';
       
       debugPrint('Fetching news from: $url');
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse(url),
       ).timeout(const Duration(seconds: 30));
 
       debugPrint('News Status Code: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        final dynamic decoded = jsonDecode(response.body);
-        List<dynamic> data;
+        final data = jsonDecode(response.body);
         
-        if (decoded is List) {
-          data = decoded;
-        } else if (decoded is Map && decoded.containsKey('news')) {
-          data = decoded['news'];
-        } else if (decoded is Map && decoded.containsKey('data')) {
-          data = decoded['data'];
-        } else {
-          debugPrint('Unexpected news response format: ${response.body}');
-          return [];
-        }
+        // Handle both Map with 'news' key and direct List response
+        final List<dynamic> newsList = (data is Map && data.containsKey('news')) 
+            ? data['news'] 
+            : (data is List ? data : []);
 
-        return data.map((json) => NewsModel.fromJson(json)).toList();
+        return newsList.map((json) => NewsModel.fromJson(json)).toList();
       } else {
         debugPrint('Failed to load news: (Status: ${response.statusCode}) ${response.body}');
         return [];
