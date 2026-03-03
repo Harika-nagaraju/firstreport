@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
@@ -7,6 +8,7 @@ import 'package:firstreport/utils/appcolors.dart';
 import 'package:firstreport/utils/theme_preference.dart';
 import 'package:firstreport/providers/language_provider.dart';
 import 'package:firstreport/l10n/app_localizations.dart';
+import 'package:firstreport/firebase_options.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,7 +22,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Small delay to allow platform channels to warm up
   await Future.delayed(const Duration(milliseconds: 100));
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
   appStateKey = GlobalKey<MyAppState>();
   runApp(
@@ -54,6 +58,8 @@ class MyAppState extends State<MyApp> {
   }
 
   Future<void> _initializeFirebase() async {
+    // FirebaseMessaging is not supported on web
+    if (kIsWeb) return;
     try {
       // Get and print FCM token
       String? fcmToken = await FirebaseMessaging.instance.getToken();
