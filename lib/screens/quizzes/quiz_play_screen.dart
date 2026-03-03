@@ -142,11 +142,11 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
                   ),
                   Text(
                     'Question ${currentIndex + 1} of ${widget.questions.length}',
-                    style: FontUtils.bold(size: 15, color: subText),
+                    style: FontUtils.medium(size: 16, color: text),
                   ),
                   Text(
                     'Score: $currentScore',
-                    style: FontUtils.bold(size: 15, color: AppColors.gradientStart),
+                    style: FontUtils.bold(size: 16, color: Colors.blue),
                   ),
                 ],
               ),
@@ -158,7 +158,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
                   value: (currentIndex + 1) / widget.questions.length,
                   minHeight: 4,
                   backgroundColor: isDark ? AppColors.darkSurface : AppColors.backgroundLightGrey,
-                  valueColor: AlwaysStoppedAnimation(AppColors.gradientStart),
+                  valueColor: const AlwaysStoppedAnimation(Colors.blue),
                 ),
               ),
               const SizedBox(height: 24),
@@ -227,13 +227,27 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
 
                 if (isAnswerRevealed) {
                   if (isCorrect) {
-                    containerColor = Colors.green.withOpacity(0.1);
-                    borderColor = Colors.green;
-                    trait = const Icon(Icons.check_circle, color: Colors.green);
+                    containerColor = const Color(0xFFE8F5E9); // Light green
+                    borderColor = const Color(0xFF4CAF50);    // Green border
+                    trait = Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4CAF50),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(Icons.check, color: Colors.white, size: 16),
+                    );
                   } else if (isWrongSelection) {
-                    containerColor = Colors.red.withOpacity(0.1);
-                    borderColor = Colors.red;
-                    trait = const Icon(Icons.cancel, color: Colors.red);
+                    containerColor = const Color(0xFFFFEBEE); // Light red
+                    borderColor = const Color(0xFFF44336);    // Red border
+                    trait = Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF44336),
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                    );
                   }
                 }
 
@@ -246,7 +260,11 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
                     decoration: BoxDecoration(
                       color: containerColor,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: borderColor, width: 1.5),
+                      border: Border.all(
+                          color: isAnswerRevealed && (isCorrect || isWrongSelection) 
+                              ? borderColor 
+                              : isDark ? AppColors.darkBorder : Colors.transparent, 
+                          width: 1.0),
                       boxShadow: [
                         if (!isAnswerRevealed)
                           BoxShadow(
@@ -312,92 +330,92 @@ class _QuizPlayScreenState extends State<QuizPlayScreen>
     final correct = submitResult!.correctCount;
     final total = submitResult!.totalQuestions;
 
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        Text(
-          'Quiz Completed!',
-          style: FontUtils.bold(size: 24, color: text),
-        ),
-        const SizedBox(height: 40),
-        
-        // Circular Progress Score (Image 4)
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 180,
-              height: 180,
-              child: CircularProgressIndicator(
-                value: percentage / 100,
-                strokeWidth: 12,
-                backgroundColor: isDark ? AppColors.darkSurface : AppColors.backgroundLightGrey,
-                valueColor: AlwaysStoppedAnimation(AppColors.gradientStart),
-              ),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$percentage%',
-                  style: FontUtils.bold(size: 36, color: text),
-                ),
-                Text(
-                  'Score',
-                  style: FontUtils.medium(size: 16, color: subText),
-                ),
-              ],
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        decoration: BoxDecoration(
+          color: card,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        
-        const SizedBox(height: 40),
-        
-        // Stats Row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _resultStatTile('Total Questions', '$total', Icons.quiz_outlined, Colors.blue),
-            _resultStatTile('Correct', '$correct', Icons.check_circle_outline, Colors.green),
-          ],
-        ),
-        
-        const Spacer(),
-        
-        // Action Buttons
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  side: BorderSide(color: AppColors.gradientStart),
+            // Gradient Circle Score
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF4A72D6), // Blue
+                    Color(0xFFE58052), // Orange
+                  ],
                 ),
-                child: Text('Back Home', style: FontUtils.bold(size: 15, color: AppColors.gradientStart)),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '$correct',
+                style: FontUtils.bold(size: 40, color: Colors.white),
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: () {
-                   // Restart logic could go here, for now just go back
-                   Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.gradientStart,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            const SizedBox(height: 24),
+            
+            Text(
+              'Quiz Complete!',
+              style: FontUtils.medium(size: 18, color: text),
+            ),
+            const SizedBox(height: 12),
+            
+            Text(
+              'You scored $correct out of $total',
+              style: FontUtils.medium(size: 16, color: subText),
+            ),
+            const SizedBox(height: 12),
+            
+            Text(
+              'Keep learning!',
+              style: FontUtils.medium(size: 16, color: const Color(0xFF4A72D6)),
+            ),
+            const SizedBox(height: 32),
+            
+            // Back to Quizzes Button
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xFF1E5CCC), // Deeper blue
+                      Color(0xFFDB7130), // Deeper orange
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: Text('Done', style: FontUtils.bold(size: 15, color: Colors.white)),
+                alignment: Alignment.center,
+                child: Text(
+                  'Back to Quizzes',
+                  style: FontUtils.medium(size: 16, color: Colors.white),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
-      ],
+      ),
     );
   }
 
