@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 class NewsDetailScreen extends StatelessWidget {
   final String imageUrl;
   final String title;
-  final String content;
+  final String fullContent;
   final String author;
   final String? authorImage;
   final DateTime publishedAt;
@@ -17,7 +17,7 @@ class NewsDetailScreen extends StatelessWidget {
     super.key,
     required this.imageUrl,
     required this.title,
-    required this.content,
+    required this.fullContent,
     required this.author,
     this.authorImage,
     required this.publishedAt,
@@ -30,10 +30,16 @@ class NewsDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? AppColors.darkBackground : AppColors.screenBackground;
+    final bgColor = isDark
+        ? AppColors.darkBackground
+        : AppColors.screenBackground;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.textDarkGrey;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.textLightGrey;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -52,14 +58,19 @@ class NewsDetailScreen extends StatelessWidget {
                   color: Colors.black.withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
             actions: [
               GestureDetector(
                 onTap: () {
-                  String cleanContent = _cleanText(content);
-                  String shareText = '$title\n\n$cleanContent\n\nShared via First Report App';
+                  String cleanContent = _cleanText(fullContent);
+                  String shareText =
+                      '$title\n\n$cleanContent\n\nShared via First Report App';
                   Share.share(shareText);
                 },
                 child: Container(
@@ -91,9 +102,8 @@ class NewsDetailScreen extends StatelessWidget {
                       : CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                          placeholder: (context, url) =>
+                              const Center(child: CircularProgressIndicator()),
                           errorWidget: (context, url, error) => Center(
                             child: Opacity(
                               opacity: 0.5,
@@ -122,13 +132,15 @@ class NewsDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          
+
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: cardColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(30),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,9 +150,11 @@ class NewsDetailScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 22,
-                        backgroundImage: authorImage != null && authorImage!.isNotEmpty
+                        backgroundImage:
+                            authorImage != null && authorImage!.isNotEmpty
                             ? NetworkImage(authorImage!)
-                            : const AssetImage('assets/images/app_icon.png') as ImageProvider,
+                            : const AssetImage('assets/images/app_icon.png')
+                                  as ImageProvider,
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -152,48 +166,61 @@ class NewsDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            DateFormat('MMM dd, yyyy • hh:mm a').format(publishedAt),
-                            style: FontUtils.regular(size: 12, color: textSecondary),
+                            DateFormat(
+                              'MMM dd, yyyy • hh:mm a',
+                            ).format(publishedAt),
+                            style: FontUtils.regular(
+                              size: 12,
+                              color: textSecondary,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
-                  // Title
-                  Text(
-                    title,
-                    style: FontUtils.bold(size: 24, color: textPrimary),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  // REMOVAL: Old date row below is removed as it's now in the author block
-                  
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 24),
-                  
-                  // Content
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: content
-                        .split('\n\n')
-                        .map((paragraph) => Padding(
+                  // Content with basic formatting and fallback
+                  fullContent.trim().isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Text(
+                            'No article content available.',
+                            style: FontUtils.regular(
+                              size: 16,
+                              color: textSecondary,
+                            ),
+                          ),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: fullContent.split('\n\n').map((paragraph) {
+                            final isHeading =
+                                paragraph.trim().startsWith('#') ||
+                                (paragraph.trim() ==
+                                        paragraph.trim().toUpperCase() &&
+                                    paragraph.trim().length < 60);
+                            return Padding(
                               padding: const EdgeInsets.only(bottom: 18),
                               child: Text(
-                                paragraph.trim(),
+                                paragraph
+                                    .trim()
+                                    .replaceAll(RegExp(r'^#+'), '')
+                                    .trim(),
                                 textAlign: TextAlign.justify,
-                                style: FontUtils.regular(
-                                  size: 17,
-                                  height: 1.8,
-                                  color: textPrimary,
-                                ),
+                                style: isHeading
+                                    ? FontUtils.bold(
+                                        size: 20,
+                                        color: textPrimary,
+                                      )
+                                    : FontUtils.regular(
+                                        size: 17,
+                                        height: 1.8,
+                                        color: textPrimary,
+                                      ),
                               ),
-                            ))
-                        .toList(),
-                  ),
-                  
+                            );
+                          }).toList(),
+                        ),
                   const SizedBox(height: 32),
                   const SizedBox(height: 100), // Bottom padding
                 ],

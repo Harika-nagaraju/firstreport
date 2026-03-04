@@ -9,53 +9,66 @@ import '../config/api_config.dart';
 class AuthService {
   static String get _baseUrl => ApiConfig.baseUrl;
 
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+  // Use the singleton instance for google_sign_in v7.2.0
+  static final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static Future<RegistrationResponse> signInWithGoogle() async {
     try {
-      // 1. Sign in with Google
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // 1. Initialize GoogleSignIn (required in v7.2.0)
+      await _googleSignIn.initialize();
+
+      // 2. Authenticate (not signIn)
+      final GoogleSignInAccount? googleUser = await _googleSignIn
+          .authenticate();
       if (googleUser == null) {
-        return RegistrationResponse(success: false, message: 'Google sign in cancelled');
+        return RegistrationResponse(
+          success: false,
+          message: 'Google sign in cancelled',
+        );
       }
 
-      // 2. Get credentials
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      // 3. Get credentials
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-
-      // 3. Sign in to Firebase
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
       final User? user = userCredential.user;
 
       if (user == null) {
-        return RegistrationResponse(success: false, message: 'Firebase authentication failed');
+        return RegistrationResponse(
+          success: false,
+          message: 'Firebase authentication failed',
+        );
       }
 
       // 4. Send to our backend to get JWT Token
       // As per the specification: Just send the idToken
       final url = '$_baseUrl/api/auth/google-login';
       debugPrint('Syncing Google User with backend: $url');
-      
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode({
-          'idToken': googleAuth.idToken,
-        }),
-      ).timeout(const Duration(seconds: 30));
+
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode({'idToken': googleAuth.idToken}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return RegistrationResponse.fromJson(jsonDecode(response.body));
       } else {
         // Fallback: If backend fails but Firebase succeeded (useful for testing if backend not ready)
         // However, in production we need the backend JWT for other APIs.
-        debugPrint('Backend sync failed: ${response.statusCode} - ${response.body}');
+        debugPrint(
+          'Backend sync failed: ${response.statusCode} - ${response.body}',
+        );
         return RegistrationResponse(
           success: false,
           message: 'Backend sync failed. Please try again later.',
@@ -63,7 +76,10 @@ class AuthService {
       }
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
-      return RegistrationResponse(success: false, message: 'Google Sign-In failed: $e');
+      return RegistrationResponse(
+        success: false,
+        message: 'Google Sign-In failed: $e',
+      );
     }
   }
 
@@ -76,18 +92,20 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/signup';
       debugPrint('Signing up at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'fullName': fullName,
-          'email': email,
-          'phone': phone,
-          'password': password,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{
+              'fullName': fullName,
+              'email': email,
+              'phone': phone,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return RegistrationResponse.fromJson(jsonDecode(response.body));
@@ -96,7 +114,9 @@ class AuthService {
         final errorData = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: errorData['message'] ?? 'Signup failed (Status: ${response.statusCode})',
+          message:
+              errorData['message'] ??
+              'Signup failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -123,17 +143,19 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/login';
       debugPrint('Logging in at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode(<String, String>{
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(<String, String>{
+              'email': email,
+              'password': password,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       debugPrint('Login Status: ${response.statusCode}');
       debugPrint('Login Response: ${response.body}');
@@ -144,7 +166,9 @@ class AuthService {
         final data = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: data['message'] ?? 'Login failed (Status: ${response.statusCode})',
+          message:
+              data['message'] ??
+              'Login failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -160,17 +184,20 @@ class AuthService {
     required String email,
   }) async {
     try {
-      final url = '$_baseUrl/api/auth/forgot-password'; // Correct hyphenated route
+      final url =
+          '$_baseUrl/api/auth/forgot-password'; // Correct hyphenated route
       debugPrint('Forgot Password at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'email': email, // Back to 'email' as expected by backend
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{
+              'email': email, // Back to 'email' as expected by backend
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       debugPrint('Forgot Password Status: ${response.statusCode}');
       debugPrint('Forgot Password Response: ${response.body}');
@@ -181,7 +208,9 @@ class AuthService {
       } else {
         return RegistrationResponse(
           success: false,
-          message: data['message'] ?? 'Forgot Password failed (Status: ${response.statusCode})',
+          message:
+              data['message'] ??
+              'Forgot Password failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -200,16 +229,15 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/verify-otp';
       debugPrint('Verify OTP at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'email': email,
-          'otp': otp,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{'email': email, 'otp': otp}),
+          )
+          .timeout(const Duration(seconds: 30));
 
       debugPrint('Verify OTP Status: ${response.statusCode}');
       if (response.statusCode == 200) {
@@ -218,7 +246,9 @@ class AuthService {
         final errorData = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: errorData['message'] ?? 'OTP verification failed (Status: ${response.statusCode})',
+          message:
+              errorData['message'] ??
+              'OTP verification failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -237,16 +267,18 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/reset-password';
       debugPrint('Resetting password at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'email': email,
-          'newPassword': newPassword,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: jsonEncode(<String, String>{
+              'email': email,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       debugPrint('Reset Password Status: ${response.statusCode}');
       debugPrint('Reset Password Response: ${response.body}');
@@ -257,7 +289,9 @@ class AuthService {
         final errorData = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: errorData['message'] ?? 'Password reset failed (Status: ${response.statusCode})',
+          message:
+              errorData['message'] ??
+              'Password reset failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -273,13 +307,15 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/profile';
       debugPrint('Fetching profile from: $url');
-      final response = await http.get(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return RegistrationResponse.fromJson(jsonDecode(response.body));
@@ -287,7 +323,9 @@ class AuthService {
         final errorData = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: errorData['message'] ?? 'Failed to load profile (Status: ${response.statusCode})',
+          message:
+              errorData['message'] ??
+              'Failed to load profile (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -308,18 +346,20 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/update';
       debugPrint('Updating profile at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(<String, String>{
-          'fullName': fullName,
-          'phone': phone,
-          'location': location,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(<String, String>{
+              'fullName': fullName,
+              'phone': phone,
+              'location': location,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return RegistrationResponse.fromJson(jsonDecode(response.body));
@@ -327,7 +367,9 @@ class AuthService {
         final errorData = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: errorData['message'] ?? 'Profile update failed (Status: ${response.statusCode})',
+          message:
+              errorData['message'] ??
+              'Profile update failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {
@@ -347,17 +389,19 @@ class AuthService {
     try {
       final url = '$_baseUrl/api/auth/settings/update';
       debugPrint('Updating settings at: $url');
-      final response = await http.post(
-        Uri.parse(url),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'notificationPreferences': notificationPreferences,
-          'quietHours': quietHours,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'notificationPreferences': notificationPreferences,
+              'quietHours': quietHours,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return RegistrationResponse.fromJson(jsonDecode(response.body));
@@ -365,7 +409,9 @@ class AuthService {
         final errorData = jsonDecode(response.body);
         return RegistrationResponse(
           success: false,
-          message: errorData['message'] ?? 'Settings update failed (Status: ${response.statusCode})',
+          message:
+              errorData['message'] ??
+              'Settings update failed (Status: ${response.statusCode})',
         );
       }
     } catch (e) {

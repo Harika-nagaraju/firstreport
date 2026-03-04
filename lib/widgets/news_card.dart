@@ -11,7 +11,7 @@ class NewsCard extends StatefulWidget {
   final String imageUrl;
   final String title;
   final String description;
-  final String fullContent; 
+  final String fullContent;
   final String author;
   final String? authorImage;
   final DateTime publishedAt;
@@ -127,7 +127,7 @@ class _NewsCardState extends State<NewsCard> {
         builder: (_) => NewsDetailScreen(
           imageUrl: widget.imageUrl,
           title: widget.title,
-          content: widget.fullContent,
+          fullContent: widget.fullContent,
           author: widget.author,
           authorImage: widget.authorImage,
           publishedAt: widget.publishedAt,
@@ -147,26 +147,24 @@ class _NewsCardState extends State<NewsCard> {
     return text.replaceAll(RegExp(r'\[\+\d+ chars\]'), '').trim();
   }
 
-  
+  // Always show full content
   String _safeDescription() {
-    if (widget.description.length < 100) {
-      return widget.fullContent.length > 200
-          ? '${widget.fullContent.substring(0, 200)}...'
-          : widget.fullContent;
-    }
-    return widget.description;
+    return widget.fullContent;
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? AppColors.darkCard : AppColors.white;
-    final textPrimary =
-        isDark ? AppColors.darkTextPrimary : AppColors.textDarkGrey;
-    final textSecondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.textLightGrey;
-    final chipBackground =
-        isDark ? AppColors.darkInputBackground : AppColors.backgroundLightGrey;
+    final textPrimary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.textDarkGrey;
+    final textSecondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.textLightGrey;
+    final chipBackground = isDark
+        ? AppColors.darkInputBackground
+        : AppColors.backgroundLightGrey;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -188,37 +186,41 @@ class _NewsCardState extends State<NewsCard> {
           GestureDetector(
             onTap: _navigateToDetail,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Container(
                 height: 200,
                 width: double.infinity,
                 color: chipBackground,
-                child: widget.imageUrl.trim().isEmpty || !widget.imageUrl.startsWith("http")
-                  ? Center(
-                      child: Image.asset(
-                        'assets/images/app_icon.png',
-                        width: 120, // Medium size for placeholder
-                        height: 120,
-                        opacity: const AlwaysStoppedAnimation(0.3), // Subtly branded
-                      ),
-                    )
-                  : CachedNetworkImage(
-                      imageUrl: widget.imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Center(
+                child:
+                    widget.imageUrl.trim().isEmpty ||
+                        !widget.imageUrl.startsWith("http")
+                    ? Center(
                         child: Image.asset(
                           'assets/images/app_icon.png',
-                          width: 120,
+                          width: 120, // Medium size for placeholder
                           height: 120,
-                          opacity: const AlwaysStoppedAnimation(0.3),
+                          opacity: const AlwaysStoppedAnimation(
+                            0.3,
+                          ), // Subtly branded
+                        ),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: widget.imageUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) => Center(
+                          child: Image.asset(
+                            'assets/images/app_icon.png',
+                            width: 120,
+                            height: 120,
+                            opacity: const AlwaysStoppedAnimation(0.3),
+                          ),
                         ),
                       ),
-                    ),
               ),
             ),
           ),
@@ -237,10 +239,7 @@ class _NewsCardState extends State<NewsCard> {
                         onTap: _navigateToDetail,
                         child: Text(
                           widget.title,
-                          style: FontUtils.bold(
-                            size: 18,
-                            color: textPrimary,
-                          ),
+                          style: FontUtils.bold(size: 18, color: textPrimary),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -262,27 +261,9 @@ class _NewsCardState extends State<NewsCard> {
                 ),
                 const SizedBox(height: 8),
                 // Description with Expansion Logic
-                AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 300),
-                  crossFadeState: isExpanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  firstChild: Text(
-                    _cleanText(_safeDescription()),
-                    style: FontUtils.regular(
-                      size: 14,
-                      color: textSecondary,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  secondChild: Text(
-                    _cleanText(widget.fullContent),
-                    style: FontUtils.regular(
-                      size: 14,
-                      color: textSecondary,
-                    ),
-                  ),
+                Text(
+                  _cleanText(widget.fullContent),
+                  style: FontUtils.regular(size: 14, color: textSecondary),
                 ),
                 const SizedBox(height: 12),
                 // Author and Time
@@ -290,10 +271,7 @@ class _NewsCardState extends State<NewsCard> {
                   children: [
                     Text(
                       '${widget.author} • ${_getTimeAgo(widget.publishedAt)}',
-                      style: FontUtils.regular(
-                        size: 12,
-                        color: textSecondary,
-                      ),
+                      style: FontUtils.regular(size: 12, color: textSecondary),
                     ),
                   ],
                 ),
@@ -355,11 +333,13 @@ class _NewsCardState extends State<NewsCard> {
                     GestureDetector(
                       onTap: () {
                         String cleanContent = _cleanText(widget.fullContent);
-                        String shareText = '${widget.title}\n\n$cleanContent\n\nShared via First Report App';
+                        String shareText =
+                            '${widget.title}\n\n$cleanContent\n\nShared via First Report App';
                         SharePlus.instance.share(
                           ShareParams(
                             subject: widget.title,
-                            text: '$cleanContent\n\nShared via First Report App',
+                            text:
+                                '$cleanContent\n\nShared via First Report App',
                           ),
                         );
                       },
@@ -375,11 +355,7 @@ class _NewsCardState extends State<NewsCard> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.share,
-                              size: 18,
-                              color: textSecondary,
-                            ),
+                            Icon(Icons.share, size: 18, color: textSecondary),
                             const SizedBox(width: 6),
                             Text(
                               sharesCount > 0 ? '$sharesCount' : 'Share',
@@ -469,5 +445,3 @@ class _NewsCardState extends State<NewsCard> {
     );
   }
 }
-
-
